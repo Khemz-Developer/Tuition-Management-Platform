@@ -13,7 +13,8 @@ import { useToast } from '../../components/ui/use-toast'
 import { Eye, EyeOff } from 'lucide-react'
 
 const registerSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
+  firstName: z.string().min(2, 'First name must be at least 2 characters'),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
@@ -53,7 +54,8 @@ export default function Register() {
   const onSubmit = async (data: RegisterFormData) => {
     try {
       await registerUser({
-        name: data.name,
+        firstName: data.firstName,
+        lastName: data.lastName,
         email: data.email,
         password: data.password,
         role: data.role,
@@ -85,14 +87,25 @@ export default function Register() {
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
-            <Input
-              id="name"
-              placeholder="John Doe"
-              {...register('name')}
-              error={errors.name?.message}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                placeholder="John"
+                {...register('firstName')}
+                error={errors.firstName?.message}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                placeholder="Doe"
+                {...register('lastName')}
+                error={errors.lastName?.message}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

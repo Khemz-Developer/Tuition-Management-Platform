@@ -46,9 +46,51 @@ export class TeacherService {
       throw new NotFoundException('Teacher profile not found');
     }
 
-    Object.assign(teacher, updateData);
+    // Update basic fields
+    if (updateData.tagline !== undefined) teacher.tagline = updateData.tagline;
+    if (updateData.bio !== undefined) teacher.bio = updateData.bio;
+    if (updateData.image !== undefined) teacher.image = updateData.image;
+    if (updateData.subjects !== undefined) teacher.subjects = updateData.subjects;
+    if (updateData.grades !== undefined) teacher.grades = updateData.grades;
+    if (updateData.experience !== undefined) teacher.experience = updateData.experience;
+    if (updateData.qualifications !== undefined) teacher.qualifications = updateData.qualifications;
+
+    // Update location
+    if (updateData.location) {
+      if (!teacher.location) {
+        teacher.location = {};
+      }
+      if (updateData.location.city !== undefined) teacher.location.city = updateData.location.city;
+      if (updateData.location.state !== undefined) teacher.location.state = updateData.location.state;
+      if (updateData.location.address !== undefined) teacher.location.address = updateData.location.address;
+    }
+
+    // Store additional fields in a flexible way
+    // Store education level, teaching modes, pricing, languages, etc.
+    if (updateData.educationLevel) {
+      teacher['educationLevel'] = updateData.educationLevel;
+    }
+    if (updateData.teachingModes) {
+      teacher['teachingModes'] = updateData.teachingModes;
+    }
+    if (updateData.pricing) {
+      teacher['pricing'] = updateData.pricing;
+    }
+    if (updateData.languages) {
+      teacher['languages'] = updateData.languages;
+    }
+    if (updateData.studentTargetTypes) {
+      teacher['studentTargetTypes'] = updateData.studentTargetTypes;
+    }
+    if (updateData.onlinePlatforms) {
+      teacher['onlinePlatforms'] = updateData.onlinePlatforms;
+    }
+    if (updateData.availability) {
+      teacher['availability'] = updateData.availability;
+    }
+
     await teacher.save();
-    return { message: 'Profile updated successfully', teacher };
+    return teacher;
   }
 
   async getClasses(teacherId: string, query: any) {

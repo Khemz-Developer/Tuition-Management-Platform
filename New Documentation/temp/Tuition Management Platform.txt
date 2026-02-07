@@ -1,0 +1,295 @@
+Tuition Management Platform (Admin + Teacher + Student + Public Teacher Pages)
+
+You are a senior full‑stack engineer + product designer. Build a production‑ready Tuition Management Platform with three roles: Super Admin, Teacher, Student.
+
+A production-ready Tuition Management Platform with three roles (Super Admin, Teacher, Student) plus a public, shareable teacher website at /t/{teacherSlug} (SEO-friendly) including an optional Public AI Assistant for student inquiries and lead capture.
+
+GOAL
+Create a full web platform with:
+1) Admin + Teacher Portal (web app)
+2) Student Portal (web app)
+3) Public Teacher Profile Website pages (shareable URL per teacher)
+
+Tech Stack (Must Use)
+
+	Frontend (both web apps)
+
+		React (Vite) + TypeScript
+		TailwindCSS
+		shadcn/ui + daisyUI
+		Smooth UI polish: hover animations, transitions, skeleton loaders, modern 		forms
+		React hooks patterns everywhere (custom hooks, data fetching hooks)
+
+	Backend
+		Node.js + TypeScript
+		Choose ONE and use consistently:
+		✅ Recommended: NestJS (structured, scalable)
+		Alternative: Express (if you prefer lighter)
+		MongoDB + Mongoose ODM
+
+
+Core Libraries / Services
+
+Auth: JWT access + refresh tokens + bcrypt
+Validation: Zod
+File storage: Cloudinary (recommended) OR AWS S3
+Realtime: Socket.io for messaging + notifications
+Calendar UI: FullCalendar
+Charts: Recharts
+Deployment-ready: Dockerfile, docker-compose, .env.example, seed script
+
+ARCHITECTURE REQUIREMENTS
+- Prefer a monorepo:
+Preferred structure:
+
+/apps /admin-teacher-web # React Vite app (Admin + Teacher portal) /student-web # React Vite app (Student portal) /api # Node.js API (NestJS recommended) /packages /shared # shared types, zod schemas, utilities
+
+  /apps/admin-teacher-web   (Admin + Teacher portal)
+  /apps/student-web         (Student portal)
+  /apps/api                 (REST API)
+  /packages/shared          (types, zod schemas, utils)
+- Role-based access control (RBAC) middleware/guards.
+- Clean code structure: controllers/routes, services, repositories, DTO/schemas.
+- Include audit logs for important admin actions.
+- Add pagination, filtering, sorting for lists.
+
+CORE ROLES & PERMISSIONS
+1) SUPER ADMIN
+- Can approve/reject teacher applications
+- Can manage teachers, students, classes, subjects, grades
+- Can view analytics dashboard: counts, trends, per-teacher metrics
+- Can impersonate teacher (optional but recommended)
+- Can suspend/ban users
+- Can manage site settings (branding, terms, contact, notification templates)
+- Can review audit logs
+
+2) TEACHER (only after approval)
+- Can manage profile (bio, image, subjects, grades, location, contact options)
+- Can create and manage classes (tuition batches)
+- Can enroll students (add, invite, approve join requests)
+- Can manage lessons (units → lessons → materials)
+- Can upload materials: PDF, images, video links or uploaded videos
+- Can schedule calendar sessions (one-time + recurring)
+- Can mark attendance per session
+- Can send messages (class chat + announcements + direct messages)
+- Can create announcements and notify students
+- Can view teacher dashboard analytics per class (student count, attendance %, upcoming sessions, unread messages)
+
+3) STUDENT
+- Can register/login
+- Can create profile
+- Can browse/search classes and teachers
+- Can request enrollment (or join via invite link/code)
+- Can see enrolled classes
+- Can see class calendar and upcoming sessions
+- Can see lesson content/materials
+- Can see attendance history (read-only)
+- Can receive notifications and messages
+- Can download PDFs and view videos
+- Can access a “Student Dashboard” (upcoming classes, new materials, unread messages)
+
+PUBLIC TEACHER WEBSITE / SHAREABLE URL (with AI Agent)
+- Each teacher gets a public page: /t/{teacherSlug}
+- Must be beautiful, responsive, SEO friendly (OpenGraph, metadata, server-rendered).
+- Public page sections (template):
+  - Hero: Teacher name, image, tagline, cover image
+  - About teacher (bio)
+  - Subjects & grades taught
+  - Public class list (only those marked public)
+  - Schedule preview (optional; only public sessions)
+  - Testimonials (optional)
+  - Contact CTA: Request to Join / Sign Up / Contact Teacher
+  - Highlights: badges (e.g., “10+ years experience”, “Exam specialist”, etc.)
+
+PRIVACY + VISIBILITY CONTROLS
+- Teacher/Admin can control what is public using toggles:
+  - showEmail, showPhone, showWhatsAppButton
+  - showSchedulePreview
+  - showTestimonials
+  - showClassFees
+  - showLocation
+  - showStudentCount (optional)
+  - allowPublicAIChat (optional)
+- Public website must never reveal:
+  - private student names
+  - private class chat
+  - internal notes
+  - teacher private contact info unless enabled
+
+TEACHER WEBSITE CUSTOMIZATION
+- Teacher can customize:
+  - theme color, accent color, font pairing (limited safe set)
+  - cover image + profile image
+  - highlights list (max 6)
+  - featured classes ordering
+  - FAQ items that AI can use
+
+PUBLIC “AI ASSISTANT” ON TEACHER PAGE (Student-facing)
+- Add a chat widget on /t/{teacherSlug} (enabled by allowPublicAIChat).
+- The AI assistant must answer using ONLY:
+  - public teacher profile fields
+  - public classes
+  - public schedule preview
+  - teacher-provided FAQs
+  - platform policies (public)
+- The AI must be able to answer:
+  - “What classes does this teacher teach?”
+  - “Which days do you have classes?”
+  - “How do I join?”
+  - “What grade/subject is available?”
+- The AI assistant must also support lead capture:
+  - collect student name, grade, contact method (WhatsApp/email), preferred subject
+  - create a “Lead/Inquiry” record and notify the teacher in the dashboard
+  - optionally propose available times based on public schedule
+
+AI SAFETY + UX RULES
+- Always show a disclaimer: “AI may be inaccurate; confirm with teacher.”
+- If user asks for private info, the AI refuses and offers contact CTA.
+- The AI should generate short, clear answers and provide buttons:
+  - “Request to Join”
+  - “View Classes”
+  - “Contact Teacher”
+
+PRIMARY ENTITIES (MongoDB Collections)
+Design schemas with indexes and references:
+- User (role: ADMIN | TEACHER | STUDENT)
+- TeacherProfile (userId, status: PENDING|APPROVED|REJECTED, slug, image, bio, subjects, grades, verification fields)
+- StudentProfile (userId, grade, school, etc.)
+- Class (teacherId, title, subject, grade, fee optional, capacity, schedule rules, visibility, status)
+- Enrollment (classId, studentId, status: REQUESTED|APPROVED|REJECTED|REMOVED, joinedAt)
+- Session (classId, startDateTime, endDateTime, recurrenceRule optional, createdBy)
+- Attendance (sessionId, classId, studentId, status: PRESENT|ABSENT|LATE, markedAt, markedBy)
+- Unit (classId, title, order)
+- Lesson (unitId, title, order, content blocks)
+- Material (lessonId, type: PDF|VIDEO|LINK|IMAGE, url, title, metadata)
+- Conversation (type: DIRECT|CLASS, classId optional, participants)
+- Message (conversationId, senderId, text, attachments, readBy)
+- Announcement (classId, title, body, createdAt)
+- Notification (userId, type, payload, readAt)
+- AdminAuditLog (adminId, action, targetType, targetId, timestamp, metadata)
+
+KEY WORKFLOWS
+A) Teacher Application & Approval
+- Teacher registers → fills teacher application form → status PENDING
+- Super Admin reviews teacher details → Approve or Reject with reason
+- Approved teacher can now create classes and invite/enroll students
+
+B) Student Enrollment
+- Student registers → browses classes → requests enrollment
+- Teacher approves/denies OR auto-approve if class setting enabled
+- Enrollment creates access to materials, calendar, messages
+
+C) Calendar & Sessions
+- Teacher creates sessions (single or recurring)
+- Students see sessions in calendar
+- Teacher can update/cancel sessions; students get notifications
+
+D) Attendance
+- After session, teacher marks attendance
+- Attendance summary shown in teacher dashboard + student portal
+
+E) Messaging
+- Class chat per class
+- Direct messages teacher↔student (optional)
+- Announcement channel (teacher → all enrolled students)
+- Include realtime updates + message read receipts (basic)
+
+F) Content (Units → Lessons → Materials)
+- Teacher creates units/lessons
+- Add rich content blocks (text, headings, bullet lists, embeds)
+- Attach PDFs/videos/links
+- Students view lesson-by-lesson content
+
+DASHBOARDS (UI REQUIREMENTS)
+Super Admin Dashboard (modern cards + charts):
+- Total teachers / pending approvals / total students / total classes
+- Per-teacher cards: teacher name, subjects, active classes, total students, attendance avg
+- Table views: Teachers list (filter by status), Students list, Classes list
+- Drilldown: Teacher detail page with classes and enrolled student counts
+- Audit log viewer
+
+Teacher Dashboard:
+- Cards: total classes, total students, upcoming sessions, unread messages
+- Class overview page: student list, attendance %, next session, latest materials
+- Calendar page: create/edit sessions
+- Attendance page: mark attendance per session
+- Content page: unit/lesson builder + materials upload
+- Messaging page: class chat + announcements + DMs
+
+Student Dashboard:
+- Upcoming sessions this week
+- New announcements/materials
+- Unread messages
+- My classes list + calendar
+
+SECURITY + QUALITY
+- Password hashing bcrypt
+- JWT access token + refresh token rotation
+- Rate limiting for auth endpoints
+- Input validation everywhere
+- File upload validation (type/size)
+- Authorization checks: teacher can only access own classes, etc.
+- Basic unit/integration tests for auth and core endpoints
+- Logging and error handling (centralized)
+
+PAGES / ROUTES (minimum)
+Admin/Teacher web:
+- /login, /register
+- /admin/dashboard
+- /admin/teachers (pending/approved/rejected)
+- /admin/teachers/[id]
+- /admin/students
+- /admin/classes
+- /teacher/dashboard
+- /teacher/classes
+- /teacher/classes/[id]/students
+- /teacher/classes/[id]/calendar
+- /teacher/classes/[id]/attendance
+- /teacher/classes/[id]/content (units/lessons/materials)
+- /teacher/messages
+
+Student web:
+- /login, /register
+- /dashboard
+- /classes (browse/search)
+- /classes/[id] (class details + request join)
+- /my-classes/[id] (materials + calendar + attendance + messages)
+- /messages
+
+Public:
+- /t/[teacherSlug]  (public teacher site)
+- /teachers (directory page optional)
+
+API ENDPOINTS (REST)
+Define clear endpoints for:
+- Auth (register, login, refresh, logout)
+- Admin (teacher approvals, lists, analytics)
+- Teacher (class CRUD, sessions, attendance, content, messaging)
+- Student (browse classes, enrollment requests, view materials/calendar/messages)
+Include pagination query params: ?page=1&limit=20&search=...
+
+DELIVERABLES
+1) A detailed implementation plan in steps (scaffold → auth → core entities → dashboards → realtime → polish)
+2) Database schema models (Mongoose) + indexes
+3) Backend API code with controllers/services
+4) Frontend Next.js code with pages, layouts, route guards, dashboards
+5) Seed script for demo data (admin, 2 teachers, 20 students, sample class, sessions, lessons)
+6) .env.example for each app
+7) Docker compose for local dev (api + mongo + web apps)
+8) README with setup instructions
+
+DESIGN STYLE
+- Modern “SaaS dashboard” look
+- Responsive for mobile and desktop
+- Use consistent components, empty states, loading skeletons, toast notifications
+
+ASSUMPTIONS
+If anything is not specified, make reasonable assumptions and document them in README.
+
+NOW START:
+- First output the full project plan (phases)
+- Then output the DB schema
+- Then output API route map
+- Then generate the monorepo scaffold and key files with code
+- Keep code production-grade, not pseudo-code.
+
