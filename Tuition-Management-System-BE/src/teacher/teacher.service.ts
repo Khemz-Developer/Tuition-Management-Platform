@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { TeacherProfile, TeacherProfileDocument } from '../models/teacher-profile.schema';
+import { TeacherProfile, TeacherProfileDocument, TeacherStatus } from '../models/teacher-profile.schema';
 import { Class, ClassDocument } from '../models/class.schema';
 import { StudentProfile, StudentProfileDocument } from '../models/student-profile.schema';
+import { User, UserDocument } from '../models/user.schema';
 
 @Injectable()
 export class TeacherService {
@@ -11,6 +12,7 @@ export class TeacherService {
     @InjectModel(TeacherProfile.name) private teacherProfileModel: Model<TeacherProfileDocument>,
     @InjectModel(Class.name) private classModel: Model<ClassDocument>,
     @InjectModel(StudentProfile.name) private studentProfileModel: Model<StudentProfileDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
 
   async getDashboard(teacherId: string) {
@@ -33,17 +35,76 @@ export class TeacherService {
   }
 
   async getProfile(teacherId: string) {
-    const teacher = await this.teacherProfileModel.findOne({ userId: teacherId });
+    let teacher = await this.teacherProfileModel
+      .findOne({ userId: teacherId })
+      .populate('userId', 'firstName lastName email');
+    
+    // If profile doesn't exist, create a default one
     if (!teacher) {
-      throw new NotFoundException('Teacher profile not found');
+      // Get user info to create profile
+      const user = await this.userModel.findById(teacherId);
+      
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+      
+      // Create a default teacher profile - extract name from email or use defaults
+      const emailName = user.email.split('@')[0];
+      const slug = `teacher-${teacherId.substring(0, 8)}`;
+      teacher = new this.teacherProfileModel({
+        userId: teacherId,
+        firstName: emailName || 'Teacher',
+        lastName: 'Profile',
+        slug,
+        status: TeacherStatus.PENDING,
+        subjects: [],
+        grades: [],
+      });
+      await teacher.save();
+      
+      // Populate userId after save
+      await teacher.populate('userId', 'firstName lastName email');
     }
-    return teacher;
+    
+    // Convert to plain object
+    const teacherObj = teacher.toObject();
+    
+    // Convert availability Map to object if it exists
+    if (teacherObj.availability && teacherObj.availability instanceof Map) {
+      const availabilityObj: any = {};
+      teacherObj.availability.forEach((value, key) => {
+        availabilityObj[key] = value;
+      });
+      teacherObj.availability = availabilityObj;
+    } else if (teacherObj.availability && typeof teacherObj.availability === 'object') {
+      // Already an object, keep it as is
+      teacherObj.availability = teacherObj.availability;
+    }
+    
+    return teacherObj;
   }
 
   async updateProfile(teacherId: string, updateData: any) {
-    const teacher = await this.teacherProfileModel.findOne({ userId: teacherId });
+    let teacher = await this.teacherProfileModel.findOne({ userId: teacherId });
+    
+    // If profile doesn't exist, create a default one first
     if (!teacher) {
-      throw new NotFoundException('Teacher profile not found');
+      const user = await this.userModel.findById(teacherId);
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+      
+      const emailName = user.email.split('@')[0];
+      const slug = `teacher-${teacherId.substring(0, 8)}`;
+      teacher = new this.teacherProfileModel({
+        userId: teacherId,
+        firstName: emailName || 'Teacher',
+        lastName: 'Profile',
+        slug,
+        status: TeacherStatus.PENDING,
+        subjects: [],
+        grades: [],
+      });
     }
 
     // Update basic fields
@@ -53,44 +114,83 @@ export class TeacherService {
     if (updateData.subjects !== undefined) teacher.subjects = updateData.subjects;
     if (updateData.grades !== undefined) teacher.grades = updateData.grades;
     if (updateData.experience !== undefined) teacher.experience = updateData.experience;
+    if (updateData.experienceLevel !== undefined) teacher.experienceLevel = updateData.experienceLevel;
     if (updateData.qualifications !== undefined) teacher.qualifications = updateData.qualifications;
+    if (updateData.educationLevel !== undefined) teacher.educationLevel = updateData.educationLevel;
+    if (updateData.teachingModes !== undefined) teacher.teachingModes = updateData.teachingModes;
+    if (updateData.languages !== undefined) teacher.languages = updateData.languages;
+    if (updateData.studentTargetTypes !== undefined) teacher.studentTargetTypes = updateData.studentTargetTypes;
+    if (updateData.onlinePlatforms !== undefined) teacher.onlinePlatforms = updateData.onlinePlatforms;
 
     // Update location
     if (updateData.location) {
       if (!teacher.location) {
-        teacher.location = {};
+        teacher.location = {} as any;
       }
       if (updateData.location.city !== undefined) teacher.location.city = updateData.location.city;
       if (updateData.location.state !== undefined) teacher.location.state = updateData.location.state;
       if (updateData.location.address !== undefined) teacher.location.address = updateData.location.address;
     }
 
-    // Store additional fields in a flexible way
-    // Store education level, teaching modes, pricing, languages, etc.
-    if (updateData.educationLevel) {
-      teacher['educationLevel'] = updateData.educationLevel;
+    // Update contact
+    if (updateData.contact) {
+      if (!teacher.contact) {
+        teacher.contact = {} as any;
+      }
+      if (updateData.contact.phone !== undefined) teacher.contact.phone = updateData.contact.phone;
+      if (updateData.contact.email !== undefined) teacher.contact.email = updateData.contact.email;
+      if (updateData.contact.whatsapp !== undefined) teacher.contact.whatsapp = updateData.contact.whatsapp;
+      if (updateData.contact.website !== undefined) teacher.contact.website = updateData.contact.website;
     }
-    if (updateData.teachingModes) {
-      teacher['teachingModes'] = updateData.teachingModes;
-    }
+
+    // Update pricing
     if (updateData.pricing) {
-      teacher['pricing'] = updateData.pricing;
+      if (!teacher.pricing) {
+        teacher.pricing = {} as any;
+      }
+      if (updateData.pricing.hourlyRate !== undefined) teacher.pricing.hourlyRate = updateData.pricing.hourlyRate;
+      if (updateData.pricing.monthlyFee !== undefined) teacher.pricing.monthlyFee = updateData.pricing.monthlyFee;
+      if (updateData.pricing.groupClassPrice !== undefined) teacher.pricing.groupClassPrice = updateData.pricing.groupClassPrice;
     }
-    if (updateData.languages) {
-      teacher['languages'] = updateData.languages;
+
+    // Update social links
+    if (updateData.socialLinks) {
+      if (!teacher.socialLinks) {
+        teacher.socialLinks = {} as any;
+      }
+      if (updateData.socialLinks.linkedin !== undefined) teacher.socialLinks.linkedin = updateData.socialLinks.linkedin;
+      if (updateData.socialLinks.youtube !== undefined) teacher.socialLinks.youtube = updateData.socialLinks.youtube;
+      if (updateData.socialLinks.facebook !== undefined) teacher.socialLinks.facebook = updateData.socialLinks.facebook;
+      if (updateData.socialLinks.twitter !== undefined) teacher.socialLinks.twitter = updateData.socialLinks.twitter;
     }
-    if (updateData.studentTargetTypes) {
-      teacher['studentTargetTypes'] = updateData.studentTargetTypes;
-    }
-    if (updateData.onlinePlatforms) {
-      teacher['onlinePlatforms'] = updateData.onlinePlatforms;
-    }
-    if (updateData.availability) {
-      teacher['availability'] = updateData.availability;
+
+    // Update availability
+    if (updateData.availability !== undefined) {
+      if (Object.keys(updateData.availability).length > 0) {
+        const availabilityMap = new Map();
+        Object.keys(updateData.availability).forEach((day) => {
+          availabilityMap.set(day, updateData.availability[day]);
+        });
+        teacher.availability = availabilityMap as any;
+      } else {
+        // Clear availability if empty object
+        teacher.availability = new Map();
+      }
     }
 
     await teacher.save();
-    return teacher;
+    
+    // Convert availability Map to object for response
+    const response = teacher.toObject();
+    if (response.availability && response.availability instanceof Map) {
+      const availabilityObj: any = {};
+      response.availability.forEach((value, key) => {
+        availabilityObj[key] = value;
+      });
+      response.availability = availabilityObj;
+    }
+    
+    return response;
   }
 
   async getClasses(teacherId: string, query: any) {

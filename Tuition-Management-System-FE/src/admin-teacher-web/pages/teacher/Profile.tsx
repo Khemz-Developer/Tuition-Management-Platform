@@ -18,6 +18,7 @@ import { useAuth } from '@/shared/hooks/useAuth'
 import { useToast } from '@/shared/components/ui/use-toast'
 import { getInitials } from '@/lib/utils'
 import { post, get, put } from '@/shared/services/api'
+import { ImageCropper } from '@/shared/components/ImageCropper'
 import {
   Camera,
   Save,
@@ -116,6 +117,12 @@ export default function TeacherProfile() {
   const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
   const [profileImage, setProfileImage] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePublicId, setImagePublicId] = useState<string | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<number>(0)
+  const [isUploading, setIsUploading] = useState(false)
+  const [showCropper, setShowCropper] = useState(false)
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   const {
     register,
@@ -164,6 +171,18 @@ export default function TeacherProfile() {
       
       // Set form values
       if (data) {
+        // Convert availability Map to object if needed
+        let availabilityData: any = {}
+        if (data.availability) {
+          if (data.availability instanceof Map) {
+            data.availability.forEach((value, key) => {
+              availabilityData[key] = value
+            })
+          } else {
+            availabilityData = data.availability
+          }
+        }
+
         reset({
           name: data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : user?.name || '',
           phone: data.contact?.phone || '',
@@ -173,7 +192,7 @@ export default function TeacherProfile() {
           subjects: data.subjects || [],
           grades: data.grades || [],
           teachingModes: data.teachingModes || [],
-          experience: data.experience || '',
+          experience: data.experienceLevel || data.experience || '',
           qualifications: data.qualifications || [],
           city: data.location?.city || '',
           state: data.location?.state || '',
@@ -186,14 +205,21 @@ export default function TeacherProfile() {
           onlinePlatforms: data.onlinePlatforms || [],
           linkedin: data.socialLinks?.linkedin || '',
           youtube: data.socialLinks?.youtube || '',
+          availability: availabilityData,
         })
         
         if (data.educationLevel) {
           setSelectedEducationLevel(data.educationLevel)
         }
         
-        if (data.image) {
-          setProfileImage(data.image)
+        if (data.image && typeof data.image === 'string') {
+          // Add cache-busting parameter to force refresh
+          const imageUrl = data.image.includes('?') 
+            ? `${data.image}&t=${Date.now()}` 
+            : `${data.image}?t=${Date.now()}`
+          setProfileImage(imageUrl)
+        } else {
+          setProfileImage(null)
         }
       }
     } catch (error) {
@@ -209,22 +235,81 @@ export default function TeacherProfile() {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+    if (!file) return
+    processImageFile(file)
+    // Reset file input
+    e.target.value = ''
+  }
+
+  const handleCropComplete = (croppedFile: File) => {
+    setImageFile(croppedFile)
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setProfileImage(reader.result as string)
+    }
+    reader.readAsDataURL(croppedFile)
+    setShowCropper(false)
+    setImageToCrop(null)
+  }
+
+  const handleImageRemove = () => {
+    setImageFile(null)
+    setProfileImage(profileData?.image || null)
+    setImagePublicId(null)
+    setUploadProgress(0)
+    setShowCropper(false)
+    setImageToCrop(null)
+  }
+
+  const processImageFile = (file: File) => {
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload an image file (JPEG, PNG, WebP, or GIF)',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Image size must be less than 5MB',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Create preview and show cropper
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setImageToCrop(reader.result as string)
+      setShowCropper(true)
+    }
+    reader.readAsDataURL(file)
+    setUploadProgress(0)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    
+    const file = e.dataTransfer.files?.[0]
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: 'Error',
-          description: 'Image size must be less than 5MB',
-          variant: 'destructive',
-        })
-        return
-      }
-      
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setProfileImage(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+      processImageFile(file)
     }
   }
 
@@ -283,44 +368,137 @@ export default function TeacherProfile() {
       setIsLoading(true)
       
       // Upload image if changed
-      let imageUrl = profileImage
+      let imageUrl: string | null = profileImage || null
       if (imageFile) {
-        const formData = new FormData()
-        formData.append('file', imageFile)
-        const uploadResult = await post<{ url: string; message?: string }>('/upload/image', formData)
-        imageUrl = uploadResult.url
+        try {
+          setIsUploading(true)
+          setUploadProgress(0)
+          
+          const formData = new FormData()
+          formData.append('file', imageFile)
+          formData.append('folder', 'teacher-profiles')
+          
+          // Use axios directly for upload progress
+          const axios = (await import('axios')).default
+          const token = localStorage.getItem('accessToken')
+          const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+          
+          const uploadResult = await axios.post<{ success: boolean; data: { url: string; publicId: string; message?: string } }>(
+            `${API_URL}/upload/image`,
+            formData,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+              onUploadProgress: (progressEvent) => {
+                if (progressEvent.total) {
+                  const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+                  setUploadProgress(percentCompleted)
+                }
+              },
+            }
+          )
+          
+          if (uploadResult?.data?.data?.url) {
+            imageUrl = uploadResult.data.data.url
+            if (uploadResult.data.data.publicId) {
+              setImagePublicId(uploadResult.data.data.publicId)
+            }
+            // Add cache-busting parameter to force refresh
+            if (imageUrl && typeof imageUrl === 'string') {
+              const imageUrlWithCache = imageUrl.includes('?') 
+                ? `${imageUrl}&t=${Date.now()}` 
+                : `${imageUrl}?t=${Date.now()}`
+              setProfileImage(imageUrlWithCache)
+            }
+          } else {
+            console.error('Upload response:', uploadResult)
+            throw new Error('No image URL returned from upload')
+          }
+          
+          toast({
+            title: 'Image uploaded',
+            description: 'Profile picture uploaded successfully',
+            variant: 'default',
+          })
+        } catch (error: any) {
+          toast({
+            title: 'Upload failed',
+            description: error.response?.data?.message || error.message || 'Failed to upload image',
+            variant: 'destructive',
+          })
+          // Don't proceed with profile update if image upload failed
+          return
+        } finally {
+          setIsUploading(false)
+          setUploadProgress(0)
+        }
       }
 
-      const updateData = {
-        tagline: data.tagline,
-        bio: data.bio,
-        educationLevel: selectedEducationLevel,
-        subjects: data.subjects,
-        grades: data.grades,
-        teachingModes: data.teachingModes,
-        experience: data.experience,
-        qualifications: data.qualifications?.filter(q => q.trim() !== ''),
-        location: {
-          city: data.city,
-          state: data.state,
-          address: data.address,
-        },
-        pricing: {
-          hourlyRate: data.hourlyRate,
-          monthlyFee: data.monthlyFee,
-          groupClassPrice: data.groupClassPrice,
-        },
-        languages: data.languages,
-        studentTargetTypes: data.studentTargetTypes,
-        onlinePlatforms: data.onlinePlatforms,
-        image: imageUrl,
-        contact: {
+      const updateData: any = {
+        tagline: data.tagline || undefined,
+        bio: data.bio || undefined,
+        educationLevel: selectedEducationLevel || undefined,
+        subjects: data.subjects || [],
+        grades: data.grades || [],
+        teachingModes: data.teachingModes || [],
+        experienceLevel: data.experience || undefined,
+        qualifications: data.qualifications?.filter(q => q && q.trim() !== '') || [],
+        image: imageUrl || undefined,
+        languages: data.languages || [],
+        studentTargetTypes: data.studentTargetTypes || [],
+        onlinePlatforms: data.onlinePlatforms || [],
+      }
+
+      // Add location if any field is provided
+      if (data.city || data.state || data.address) {
+        updateData.location = {
+          city: data.city || undefined,
+          state: data.state || undefined,
+          address: data.address || undefined,
+        }
+      }
+
+      // Add pricing if any field is provided
+      if (data.hourlyRate || data.monthlyFee || data.groupClassPrice) {
+        updateData.pricing = {
+          hourlyRate: data.hourlyRate || undefined,
+          monthlyFee: data.monthlyFee || undefined,
+          groupClassPrice: data.groupClassPrice || undefined,
+        }
+      }
+
+      // Add contact if phone is provided
+      if (data.phone) {
+        updateData.contact = {
           phone: data.phone,
-        },
-        socialLinks: {
+        }
+      }
+
+      // Add social links if any are provided
+      if (data.linkedin || data.youtube) {
+        updateData.socialLinks = {
           linkedin: data.linkedin || undefined,
           youtube: data.youtube || undefined,
-        },
+        }
+      }
+
+      // Add availability if any day is enabled
+      const availability: any = {}
+      let hasAvailability = false
+      daysOfWeek.forEach((day) => {
+        const dayData = watch(`availability.${day}`)
+        if (dayData?.enabled) {
+          availability[day] = {
+            enabled: true,
+            startTime: dayData.startTime || undefined,
+            endTime: dayData.endTime || undefined,
+          }
+          hasAvailability = true
+        }
+      })
+      if (hasAvailability) {
+        updateData.availability = availability
       }
 
       await put('/teacher/profile', updateData)
@@ -332,7 +510,43 @@ export default function TeacherProfile() {
       })
       
       setIsEditing(false)
+      
+      // Clear the image file since it's now uploaded
+      if (imageFile) {
+        setImageFile(null)
+      }
+      
+      // Update image state immediately with cache-busting
+      if (imageUrl && typeof imageUrl === 'string') {
+        const imageUrlWithCache = imageUrl.includes('?') 
+          ? `${imageUrl}&t=${Date.now()}` 
+          : `${imageUrl}?t=${Date.now()}`
+        setProfileImage(imageUrlWithCache)
+      }
+      
+      // Reload profile to get latest data from server (this will update profileData)
       await loadProfile()
+      
+      // Force image refresh after reload - fetch fresh data
+      setTimeout(async () => {
+        try {
+          const freshData = await get<any>('/teacher/profile')
+          if (freshData?.image && typeof freshData.image === 'string') {
+            const freshImageUrl = freshData.image.includes('?') 
+              ? `${freshData.image}&t=${Date.now()}` 
+              : `${freshData.image}?t=${Date.now()}`
+            setProfileImage(freshImageUrl)
+            setProfileData(freshData)
+          } else if (imageUrl && typeof imageUrl === 'string') {
+            const freshImageUrl = imageUrl.includes('?') 
+              ? `${imageUrl}&t=${Date.now()}` 
+              : `${imageUrl}?t=${Date.now()}`
+            setProfileImage(freshImageUrl)
+          }
+        } catch (error) {
+          console.error('Failed to refresh profile image:', error)
+        }
+      }, 300)
     } catch (error) {
       toast({
         title: 'Error',
@@ -352,6 +566,18 @@ export default function TeacherProfile() {
     )
   }
 
+  // Get experience display value
+  const getExperienceDisplay = () => {
+    if (profileData?.experienceLevel) {
+      const level = experienceLevels.find(l => l.value === profileData.experienceLevel)
+      return level ? level.label : profileData.experienceLevel
+    }
+    if (profileData?.experience) {
+      return profileData.experience
+    }
+    return ''
+  }
+
   const profile = {
     name: profileData?.firstName && profileData?.lastName
       ? `${profileData.firstName} ${profileData.lastName}`
@@ -364,7 +590,7 @@ export default function TeacherProfile() {
     bio: profileData?.bio || '',
     subjects: profileData?.subjects || [],
     qualifications: profileData?.qualifications || [],
-    experience: profileData?.experience || '',
+    experience: getExperienceDisplay(),
     socialLinks: {
       linkedin: profileData?.socialLinks?.linkedin || '',
       youtube: profileData?.socialLinks?.youtube || '',
@@ -583,45 +809,100 @@ export default function TeacherProfile() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Profile Photo</CardTitle>
-                      <CardDescription>Upload your profile photo</CardDescription>
+                      <CardDescription>
+                        Upload a clear profile photo. You can crop and adjust it before saving. Recommended: Square image, at least 400x400px, max 5MB
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex items-center gap-6">
-                        <Avatar className="w-24 h-24">
-                          <AvatarImage src={profileImage || undefined} />
-                          <AvatarFallback className="text-2xl">
-                            {user ? getInitials(user.name) : 'T'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="space-y-2">
-                          <Label htmlFor="image-upload" className="cursor-pointer">
-                            <Button type="button" variant="outline" asChild>
-                              <span>
-                                <Upload className="mr-2 h-4 w-4" />
-                                Upload Photo
-                              </span>
-                            </Button>
-                          </Label>
-                          <Input
-                            id="image-upload"
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            className="hidden"
-                          />
-                          {profileImage && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setProfileImage(null)
-                                setImageFile(null)
-                              }}
-                            >
-                              <X className="mr-2 h-4 w-4" />
-                              Remove
-                            </Button>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+                        <div className="relative">
+                          <Avatar className="w-32 h-32 border-2 border-border">
+                            <AvatarImage src={profileImage || undefined} className="object-cover" />
+                            <AvatarFallback className="text-3xl">
+                              {user ? getInitials(user.name) : 'T'}
+                            </AvatarFallback>
+                          </Avatar>
+                          {isUploading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full">
+                              <div className="text-center">
+                                <div className="text-sm font-medium">{uploadProgress}%</div>
+                                <div className="text-xs text-muted-foreground">Uploading...</div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="space-y-3 flex-1 w-full">
+                          <div
+                            className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
+                              isDragging
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                          >
+                            <div className="space-y-2 text-center">
+                              <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
+                              <div className="space-y-1">
+                                <Label htmlFor="image-upload" className="cursor-pointer">
+                                  <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    disabled={isUploading}
+                                    asChild
+                                  >
+                                    <span>
+                                      {imageFile ? 'Change Photo' : 'Upload Photo'}
+                                    </span>
+                                  </Button>
+                                </Label>
+                                <Input
+                                  id="image-upload"
+                                  type="file"
+                                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                                  onChange={handleImageUpload}
+                                  className="hidden"
+                                  disabled={isUploading}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                  or drag and drop here
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  You'll be able to crop it before saving
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {imageFile && (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="text-muted-foreground">Selected:</span>
+                                <span className="font-medium">{imageFile.name}</span>
+                                <span className="text-muted-foreground">
+                                  ({(imageFile.size / 1024 / 1024).toFixed(2)} MB)
+                                </span>
+                              </div>
+                              {uploadProgress > 0 && uploadProgress < 100 && (
+                                <div className="w-full bg-secondary rounded-full h-2">
+                                  <div
+                                    className="bg-primary h-2 rounded-full transition-all duration-300"
+                                    style={{ width: `${uploadProgress}%` }}
+                                  />
+                                </div>
+                              )}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleImageRemove}
+                                disabled={isUploading}
+                              >
+                                <X className="mr-2 h-4 w-4" />
+                                Remove
+                              </Button>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -818,7 +1099,10 @@ export default function TeacherProfile() {
 
                       <div className="space-y-2">
                         <Label htmlFor="experience">Experience Level</Label>
-                        <Select onValueChange={(value) => setValue('experience', value)}>
+                        <Select 
+                          value={watch('experience') || ''} 
+                          onValueChange={(value) => setValue('experience', value)}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Select experience level" />
                           </SelectTrigger>
@@ -1105,6 +1389,21 @@ export default function TeacherProfile() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Image Cropper Dialog */}
+      {imageToCrop && (
+        <ImageCropper
+          image={imageToCrop}
+          open={showCropper}
+          onClose={() => {
+            setShowCropper(false)
+            setImageToCrop(null)
+          }}
+          onCropComplete={handleCropComplete}
+          aspect={1}
+          cropShape="round"
+        />
+      )}
     </div>
   )
 }

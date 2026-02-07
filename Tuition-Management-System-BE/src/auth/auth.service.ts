@@ -59,17 +59,18 @@ export class AuthService {
     await user.save();
 
     // Create profile based on role
-    if (role === UserRole.TEACHER && teacherProfile) {
+    if (role === UserRole.TEACHER) {
+      // Always create a teacher profile, even if teacherProfile data is not provided
       const slug = `${firstName}-${lastName}`.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       const newTeacherProfileDoc = new this.teacherProfileModel({
         userId: user._id,
         firstName,
         lastName,
         slug,
-        subjects: teacherProfile.subjects,
-        grades: teacherProfile.grades,
-        bio: teacherProfile.bio,
-        location: teacherProfile.location,
+        subjects: teacherProfile?.subjects || [],
+        grades: teacherProfile?.grades || [],
+        bio: teacherProfile?.bio || '',
+        location: teacherProfile?.location || {},
         status: TeacherStatus.PENDING,
       });
       await newTeacherProfileDoc.save();

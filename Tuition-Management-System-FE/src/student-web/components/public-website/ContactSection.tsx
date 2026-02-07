@@ -12,6 +12,8 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select'
 import { Phone, Mail, MapPin, Clock, Send } from 'lucide-react'
+import { post } from '@/shared/services/api'
+import { useToast } from '@/shared/components/ui/use-toast'
 
 interface ContactInfo {
   phone?: string
@@ -21,6 +23,7 @@ interface ContactInfo {
 }
 
 interface ContactSectionProps {
+  teacherSlug?: string
   contactInfo?: ContactInfo
 }
 
@@ -32,10 +35,12 @@ export default function ContactSection({
     hours: 'Mon-Sat: 9:00 AM - 8:00 PM',
   },
 }: ContactSectionProps) {
+  const { toast } = useToast()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
+    grade: '',
     subject: '',
     message: '',
   })
@@ -43,12 +48,42 @@ export default function ContactSection({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!teacherSlug) {
+      toast({
+        title: 'Unable to send',
+        description: 'Teacher information is missing. Please refresh the page.',
+        variant: 'destructive',
+      })
+      return
+    }
     setIsSubmitting(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsSubmitting(false)
-    setFormData({ name: '', email: '', phone: '', subject: '', message: '' })
-    alert('Thank you for your message! We will get back to you soon.')
+    try {
+      const contactMethod = formData.email ? 'email' : formData.phone ? 'phone' : 'other'
+      const contactValue = formData.email || formData.phone || 'not-provided'
+
+      await post(`/public/teachers/${teacherSlug}/contact`, {
+        studentName: formData.name,
+        grade: formData.grade || undefined,
+        contactMethod,
+        contactValue,
+        preferredSubject: formData.subject || undefined,
+        message: formData.message,
+      })
+
+      toast({
+        title: 'Message sent',
+        description: 'Thanks for reaching out. The teacher will contact you soon.',
+      })
+      setFormData({ name: '', email: '', phone: '', grade: '', subject: '', message: '' })
+    } catch (error: any) {
+      toast({
+        title: 'Send failed',
+        description: error?.message || 'Unable to send your message right now.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -65,50 +100,58 @@ export default function ContactSection({
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Contact info */}
             <div className="space-y-4">
-              <Card>
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="p-3 rounded-full bg-primary/10">
-                    <Phone className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Phone</p>
-                    <p className="font-medium">{contactInfo.phone}</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="p-3 rounded-full bg-primary/10">
-                    <Mail className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Email</p>
-                    <p className="font-medium">{contactInfo.email}</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="p-3 rounded-full bg-primary/10">
-                    <MapPin className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Address</p>
-                    <p className="font-medium">{contactInfo.address}</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="p-3 rounded-full bg-primary/10">
-                    <Clock className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Office Hours</p>
-                    <p className="font-medium">{contactInfo.hours}</p>
-                  </div>
-                </CardContent>
-              </Card>
+              {contactInfo.phone && (
+                <Card>
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <div className="p-3 rounded-full bg-primary/10">
+                      <Phone className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Phone</p>
+                      <p className="font-medium">{contactInfo.phone}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {contactInfo.email && (
+                <Card>
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <div className="p-3 rounded-full bg-primary/10">
+                      <Mail className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="font-medium">{contactInfo.email}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {contactInfo.address && (
+                <Card>
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <div className="p-3 rounded-full bg-primary/10">
+                      <MapPin className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Address</p>
+                      <p className="font-medium">{contactInfo.address}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {contactInfo.hours && (
+                <Card>
+                  <CardContent className="p-4 flex items-center gap-4">
+                    <div className="p-3 rounded-full bg-primary/10">
+                      <Clock className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Office Hours</p>
+                      <p className="font-medium">{contactInfo.hours}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Contact form */}
@@ -161,6 +204,17 @@ export default function ContactSection({
                       />
                     </div>
                     <div className="space-y-2">
+                      <Label htmlFor="grade">Grade</Label>
+                      <Input
+                        id="grade"
+                        placeholder="e.g., 10th"
+                        value={formData.grade}
+                        onChange={(e) =>
+                          setFormData({ ...formData, grade: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="subject">Subject</Label>
                       <Select
                         value={formData.subject}
@@ -172,10 +226,11 @@ export default function ContactSection({
                           <SelectValue placeholder="Select a subject" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="enrollment">Enrollment Inquiry</SelectItem>
-                          <SelectItem value="fee">Fee Structure</SelectItem>
-                          <SelectItem value="schedule">Batch Timings</SelectItem>
-                          <SelectItem value="demo">Demo Class Request</SelectItem>
+                          <SelectItem value="mathematics">Mathematics</SelectItem>
+                          <SelectItem value="science">Science</SelectItem>
+                          <SelectItem value="physics">Physics</SelectItem>
+                          <SelectItem value="chemistry">Chemistry</SelectItem>
+                          <SelectItem value="biology">Biology</SelectItem>
                           <SelectItem value="other">Other</SelectItem>
                         </SelectContent>
                       </Select>

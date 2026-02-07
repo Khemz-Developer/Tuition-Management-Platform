@@ -46,6 +46,45 @@ export class Contact {
 }
 
 @Schema({ _id: false })
+export class Pricing {
+  @Prop()
+  hourlyRate?: string;
+
+  @Prop()
+  monthlyFee?: string;
+
+  @Prop()
+  groupClassPrice?: string;
+}
+
+@Schema({ _id: false })
+export class SocialLinks {
+  @Prop()
+  linkedin?: string;
+
+  @Prop()
+  youtube?: string;
+
+  @Prop()
+  facebook?: string;
+
+  @Prop()
+  twitter?: string;
+}
+
+@Schema({ _id: false })
+export class DayAvailability {
+  @Prop({ default: false })
+  enabled: boolean;
+
+  @Prop()
+  startTime?: string;
+
+  @Prop()
+  endTime?: string;
+}
+
+@Schema({ _id: false })
 export class Visibility {
   @Prop({ default: false })
   showEmail: boolean;
@@ -246,6 +285,9 @@ export class TeacherProfile {
   @Prop()
   experience?: number;
 
+  @Prop()
+  experienceLevel?: string;
+
   @Prop({ type: [String] })
   qualifications?: string[];
 
@@ -254,6 +296,30 @@ export class TeacherProfile {
 
   @Prop({ type: Contact, _id: false })
   contact?: Contact;
+
+  @Prop()
+  educationLevel?: string;
+
+  @Prop({ type: [String] })
+  teachingModes?: string[];
+
+  @Prop({ type: Pricing, _id: false })
+  pricing?: Pricing;
+
+  @Prop({ type: [String] })
+  languages?: string[];
+
+  @Prop({ type: [String] })
+  studentTargetTypes?: string[];
+
+  @Prop({ type: [String] })
+  onlinePlatforms?: string[];
+
+  @Prop({ type: Map, of: Object, default: () => new Map() })
+  availability?: Map<string, DayAvailability>;
+
+  @Prop({ type: SocialLinks, _id: false })
+  socialLinks?: SocialLinks;
 
   @Prop({ type: Visibility, _id: false, default: () => ({}) })
   visibility: Visibility;
