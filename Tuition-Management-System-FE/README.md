@@ -230,6 +230,4 @@ docker run -p 80:80 tuition-fe
 
 Or use docker-compose from the root directory.
 
-## License
 
-MIT
