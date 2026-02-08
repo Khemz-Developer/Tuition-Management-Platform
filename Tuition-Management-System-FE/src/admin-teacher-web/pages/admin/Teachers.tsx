@@ -1,17 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
-import { Input } from '@/shared/components/ui/input'
 import { Badge } from '@/shared/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/shared/components/ui/table'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,7 +20,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { Textarea } from '@/shared/components/ui/textarea'
-import { Search, MoreVertical, Check, X, Eye, Mail, Loader2 } from 'lucide-react'
+import { DataTable, Column } from '@/shared/components/ui/data-table'
+import { MoreVertical, Check, X, Eye, Mail, Loader2, Star } from 'lucide-react'
 import { getInitials } from '@/lib/utils'
 import { get, post } from '@/shared/services/api'
 import { useToast } from '@/shared/components/ui/use-toast'
@@ -87,7 +79,6 @@ const getStatusBadge = (status: string) => {
 }
 
 export default function AdminTeachers() {
-  const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState('all')
   const [teachers, setTeachers] = useState<Teacher[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -118,11 +109,6 @@ export default function AdminTeachers() {
           params.status = activeTab.toUpperCase()
         }
         
-        // Add search query if provided
-        if (searchQuery.trim()) {
-          params.search = searchQuery.trim()
-        }
-        
         const response = await get<TeachersResponse>('/admin/teachers', params)
         setTeachers(response.data || [])
       } catch (err: any) {
@@ -133,28 +119,107 @@ export default function AdminTeachers() {
       }
     }
 
-    // Debounce search query
-    const timeoutId = setTimeout(() => {
-      fetchTeachers()
-    }, searchQuery ? 500 : 0)
+    fetchTeachers()
+  }, [activeTab])
 
-    return () => clearTimeout(timeoutId)
-  }, [activeTab, searchQuery])
-
-  // Transform teachers data for display
-  const displayTeachers = useMemo(() => {
-    return teachers.map((teacher) => ({
-      id: teacher._id,
-      name: `${teacher.firstName} ${teacher.lastName}`,
-      email: teacher.userId?.email || teacher.email || '',
-      status: teacher.status,
-      subjects: teacher.subjects || [],
-      image: teacher.image,
-      totalStudents: 0, // TODO: Add this from backend if available
-      totalClasses: 0, // TODO: Add this from backend if available
-      joinedAt: teacher.createdAt,
-    }))
-  }, [teachers])
+  // Define columns for DataTable
+  const columns: Column<Teacher>[] = useMemo(() => [
+    {
+      id: 'teacher',
+      header: 'Teacher',
+      cell: (row) => (
+        <div className="flex items-center gap-3">
+          <Avatar>
+            <AvatarImage src={row.image} alt={`${row.firstName} ${row.lastName}`} />
+            <AvatarFallback>{getInitials(`${row.firstName} ${row.lastName}`)}</AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-medium">{row.firstName} {row.lastName}</p>
+            <p className="text-sm text-muted-foreground">{row.userId?.email || row.email || ''}</p>
+          </div>
+        </div>
+      ),
+      sortable: true,
+      sortFn: (a, b) => {
+        const aName = `${a.firstName} ${a.lastName}`.toLowerCase()
+        const bName = `${b.firstName} ${b.lastName}`.toLowerCase()
+        return aName.localeCompare(bName)
+      },
+      pinable: true,
+      defaultPinned: 'left',
+      width: '300px',
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      cell: (row) => getStatusBadge(row.status),
+      sortable: false,
+      pinable: true,
+    },
+    {
+      id: 'subjects',
+      header: 'Subjects',
+      cell: (row) => (
+        <div className="flex flex-wrap gap-1">
+          {row.subjects && row.subjects.length > 0 ? (
+            row.subjects.slice(0, 3).map((subject) => (
+              <Badge key={subject} variant="outline" className="text-xs">
+                {subject}
+              </Badge>
+            ))
+          ) : (
+            <span className="text-sm text-muted-foreground">No subjects</span>
+          )}
+          {row.subjects && row.subjects.length > 3 && (
+            <Badge variant="outline" className="text-xs">
+              +{row.subjects.length - 3}
+            </Badge>
+          )}
+        </div>
+      ),
+      sortable: false,
+    },
+    {
+      id: 'rating',
+      header: 'Rating',
+      cell: () => (
+        <div className="flex items-center gap-1">
+          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+          <span className="text-sm font-medium">4.5</span>
+          <span className="text-xs text-muted-foreground">(120)</span>
+        </div>
+      ),
+      sortable: true,
+    },
+    {
+      id: 'students',
+      header: 'Students',
+      accessorKey: 'totalStudents' as keyof Teacher,
+      cell: () => <span className="text-center">0</span>,
+      sortable: true,
+    },
+    {
+      id: 'classes',
+      header: 'Classes',
+      accessorKey: 'totalClasses' as keyof Teacher,
+      cell: () => <span className="text-center">0</span>,
+      sortable: true,
+    },
+    {
+      id: 'lastModified',
+      header: 'Last Modified',
+      cell: (row) => (
+        <span className="text-muted-foreground">
+          {row.updatedAt 
+            ? new Date(row.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+            : new Date(row.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+          }
+        </span>
+      ),
+      sortable: true,
+      defaultPinned: 'right',
+    },
+  ], [])
 
   // Count teachers by status
   const statusCounts = useMemo(() => {
@@ -214,9 +279,6 @@ export default function AdminTeachers() {
       if (activeTab !== 'all') {
         params.status = activeTab.toUpperCase()
       }
-      if (searchQuery.trim()) {
-        params.search = searchQuery.trim()
-      }
       const response = await get<TeachersResponse>('/admin/teachers', params)
       setTeachers(response.data || [])
     } catch (err: any) {
@@ -263,9 +325,6 @@ export default function AdminTeachers() {
       if (activeTab !== 'all') {
         params.status = activeTab.toUpperCase()
       }
-      if (searchQuery.trim()) {
-        params.search = searchQuery.trim()
-      }
       const response = await get<TeachersResponse>('/admin/teachers', params)
       setTeachers(response.data || [])
     } catch (err: any) {
@@ -303,17 +362,8 @@ export default function AdminTeachers() {
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <CardTitle>All Teachers</CardTitle>
+              <CardTitle>Teachers</CardTitle>
               <CardDescription>View and manage teacher accounts</CardDescription>
-            </div>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search teachers..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
             </div>
           </div>
         </CardHeader>
@@ -332,124 +382,80 @@ export default function AdminTeachers() {
             </TabsList>
 
             <TabsContent value={activeTab} className="mt-4">
-              <div className="rounded-md border">
-                {isLoading ? (
-                  <div className="p-4 space-y-4">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="flex items-center gap-4">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-4 w-48" />
-                          <Skeleton className="h-3 w-32" />
-                        </div>
-                        <Skeleton className="h-6 w-20" />
-                        <Skeleton className="h-6 w-32" />
-                        <Skeleton className="h-6 w-16" />
-                        <Skeleton className="h-6 w-16" />
-                        <Skeleton className="h-8 w-8" />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Teacher</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Subjects</TableHead>
-                        <TableHead className="text-center">Students</TableHead>
-                        <TableHead className="text-center">Classes</TableHead>
-                        <TableHead>Joined</TableHead>
-                        <TableHead className="w-[50px]"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {displayTeachers.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                            {searchQuery ? 'No teachers found matching your search' : 'No teachers found'}
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        displayTeachers.map((teacher) => (
-                          <TableRow key={teacher.id}>
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <Avatar>
-                                  <AvatarImage src={teacher.image} alt={teacher.name} />
-                                  <AvatarFallback>{getInitials(teacher.name)}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="font-medium">{teacher.name}</p>
-                                  <p className="text-sm text-muted-foreground">{teacher.email}</p>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>{getStatusBadge(teacher.status)}</TableCell>
-                            <TableCell>
-                              <div className="flex flex-wrap gap-1">
-                                {teacher.subjects.length > 0 ? (
-                                  teacher.subjects.map((subject) => (
-                                    <Badge key={subject} variant="outline" className="text-xs">
-                                      {subject}
-                                    </Badge>
-                                  ))
-                                ) : (
-                                  <span className="text-sm text-muted-foreground">No subjects</span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-center">{teacher.totalStudents}</TableCell>
-                            <TableCell className="text-center">{teacher.totalClasses}</TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {new Date(teacher.joinedAt).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleViewDetails(teacher.id)}>
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    View Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    <Mail className="mr-2 h-4 w-4" />
-                                    Send Email
-                                  </DropdownMenuItem>
-                                  {teacher.status === 'PENDING' && (
-                                    <>
-                                      <DropdownMenuItem
-                                        className="text-green-600"
-                                        onClick={() => handleApprove(teacher.id)}
-                                        disabled={isActionLoading}
-                                      >
-                                        <Check className="mr-2 h-4 w-4" />
-                                        Approve
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        className="text-destructive"
-                                        onClick={() => openRejectDialog(teacher.id)}
-                                        disabled={isActionLoading}
-                                      >
-                                        <X className="mr-2 h-4 w-4" />
-                                        Reject
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))
+              <DataTable
+                data={teachers}
+                columns={columns}
+                searchKey={['firstName', 'lastName', 'email']}
+                searchPlaceholder="Search Teachers..."
+                isLoading={isLoading}
+                emptyMessage="No teachers found"
+                pageSize={5}
+                showViewToggle={true}
+                defaultView="list"
+                renderRowActions={(row) => (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleViewDetails(row._id)}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Mail className="mr-2 h-4 w-4" />
+                        Send Email
+                      </DropdownMenuItem>
+                      {row.status === 'PENDING' && (
+                        <>
+                          <DropdownMenuItem
+                            className="text-green-600"
+                            onClick={() => handleApprove(row._id)}
+                            disabled={isActionLoading}
+                          >
+                            <Check className="mr-2 h-4 w-4" />
+                            Approve
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => openRejectDialog(row._id)}
+                            disabled={isActionLoading}
+                          >
+                            <X className="mr-2 h-4 w-4" />
+                            Reject
+                          </DropdownMenuItem>
+                        </>
                       )}
-                    </TableBody>
-                  </Table>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
-              </div>
+                renderGridItem={(row) => (
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardContent className="pt-6">
+                      <div className="flex items-start gap-4">
+                        <Avatar className="h-16 w-16">
+                          <AvatarImage src={row.image} alt={`${row.firstName} ${row.lastName}`} />
+                          <AvatarFallback>{getInitials(`${row.firstName} ${row.lastName}`)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg">{row.firstName} {row.lastName}</h3>
+                          <p className="text-sm text-muted-foreground">{row.userId?.email || row.email || ''}</p>
+                          <div className="mt-2">{getStatusBadge(row.status)}</div>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {row.subjects && row.subjects.slice(0, 3).map((subject) => (
+                              <Badge key={subject} variant="outline" className="text-xs">
+                                {subject}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              />
             </TabsContent>
           </Tabs>
         </CardContent>

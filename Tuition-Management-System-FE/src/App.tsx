@@ -30,6 +30,7 @@ import StudentMyClasses from './student-web/pages/MyClasses'
 import StudentMyClassDetail from './student-web/pages/MyClassDetail'
 import StudentMessages from './student-web/pages/Messages'
 import StudentProfile from './student-web/pages/Profile'
+import StudentTeachers from './student-web/pages/Teachers'
 import TeacherDirectory from './student-web/pages/Teachers'
 import PublicTeacherProfile from './student-web/pages/PublicTeacherProfile'
 
@@ -117,17 +118,18 @@ function App() {
         <Route element={<StudentRoute />}>
           <Route element={<StudentLayout />}>
             <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
-            <Route path="/dashboard" element={<StudentDashboard />} />
-            <Route path="/classes" element={<StudentClasses />} />
-            <Route path="/classes/:id" element={<StudentClassDetail />} />
-            <Route path="/my-classes" element={<StudentMyClasses />} />
-            <Route path="/my-classes/:id" element={<StudentMyClassDetail />} />
-            <Route path="/my-classes/:id/materials" element={<StudentMyClassDetail />} />
-            <Route path="/my-classes/:id/calendar" element={<StudentMyClassDetail />} />
-            <Route path="/my-classes/:id/attendance" element={<StudentMyClassDetail />} />
-            <Route path="/my-classes/:id/messages" element={<StudentMyClassDetail />} />
-            <Route path="/messages" element={<StudentMessages />} />
-            <Route path="/profile" element={<StudentProfile />} />
+            <Route path="/student/dashboard" element={<StudentDashboard />} />
+            <Route path="/student/classes" element={<StudentClasses />} />
+            <Route path="/student/classes/:id" element={<StudentClassDetail />} />
+            <Route path="/student/my-classes" element={<StudentMyClasses />} />
+            <Route path="/student/my-classes/:id" element={<StudentMyClassDetail />} />
+            <Route path="/student/my-classes/:id/materials" element={<StudentMyClassDetail />} />
+            <Route path="/student/my-classes/:id/calendar" element={<StudentMyClassDetail />} />
+            <Route path="/student/my-classes/:id/attendance" element={<StudentMyClassDetail />} />
+            <Route path="/student/my-classes/:id/messages" element={<StudentMyClassDetail />} />
+            <Route path="/student/teachers" element={<StudentTeachers />} />
+            <Route path="/student/messages" element={<StudentMessages />} />
+            <Route path="/student/profile" element={<StudentProfile />} />
           </Route>
         </Route>
       </Route>
@@ -142,7 +144,7 @@ function App() {
             ) : user.role === 'TEACHER' ? (
               <Navigate to="/teacher/dashboard" replace />
             ) : (
-              <Navigate to="/dashboard" replace />
+              <Navigate to="/student/dashboard" replace />
             )
           ) : (
             <Navigate to="/login" replace />

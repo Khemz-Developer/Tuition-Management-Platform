@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -20,37 +20,13 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar'
 import { Search, MoreVertical, Eye, Mail, Ban } from 'lucide-react'
 import { getInitials } from '@/lib/utils'
+import { get } from '@/shared/services/api'
+import type { PaginatedResponse } from '@/shared/types/api.types'
+import type { StudentProfile } from '@/shared/types/user.types'
 
 // Placeholder data
-const mockStudents = [
-  {
-    id: '1',
-    name: 'Alice Brown',
-    email: 'alice@example.com',
-    status: 'ACTIVE',
-    grade: '10th',
-    enrolledClasses: 3,
-    joinedAt: '2024-01-10',
-  },
-  {
-    id: '2',
-    name: 'Bob Davis',
-    email: 'bob@example.com',
-    status: 'ACTIVE',
-    grade: '11th',
-    enrolledClasses: 2,
-    joinedAt: '2024-01-15',
-  },
-  {
-    id: '3',
-    name: 'Carol Evans',
-    email: 'carol@example.com',
-    status: 'SUSPENDED',
-    grade: '9th',
-    enrolledClasses: 0,
-    joinedAt: '2024-01-20',
-  },
-]
+// Backend API endpoint: /admin/students
+const API_ENDPOINT = '/admin/students'
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -67,11 +43,27 @@ const getStatusBadge = (status: string) => {
 
 export default function AdminStudents() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [students, setStudents] = useState<StudentProfile[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const filteredStudents = mockStudents.filter(
+  useEffect(() => {
+    setLoading(true)
+    get<PaginatedResponse<StudentProfile>>(API_ENDPOINT)
+      .then((res) => {
+        setStudents(res.data)
+        setError(null)
+      })
+      .catch((err) => {
+        setError(err.message || 'Failed to fetch students')
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const filteredStudents = students.filter(
     (student) =>
-      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchQuery.toLowerCase())
+      (student.user?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (student.user?.email || '').toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   return (
@@ -101,74 +93,80 @@ export default function AdminStudents() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Grade</TableHead>
-                  <TableHead className="text-center">Enrolled Classes</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredStudents.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8">Loading students...</div>
+          ) : error ? (
+            <div className="text-center py-8 text-destructive">{error}</div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No students found
-                    </TableCell>
+                    <TableHead>Student</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Grade</TableHead>
+                    <TableHead className="text-center">Preferred Teachers</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
-                ) : (
-                  filteredStudents.map((student) => (
-                    <TableRow key={student.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{student.name}</p>
-                            <p className="text-sm text-muted-foreground">{student.email}</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(student.status)}</TableCell>
-                      <TableCell>{student.grade}</TableCell>
-                      <TableCell className="text-center">{student.enrolledClasses}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(student.joinedAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Mail className="mr-2 h-4 w-4" />
-                              Send Email
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
-                              <Ban className="mr-2 h-4 w-4" />
-                              {student.status === 'SUSPENDED' ? 'Unsuspend' : 'Suspend'}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                </TableHeader>
+                <TableBody>
+                  {filteredStudents.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        No students found
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  ) : (
+                    filteredStudents.map((student) => (
+                      <TableRow key={student._id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarFallback>{getInitials(student.user?.name || '')}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{student.user?.name || 'N/A'}</p>
+                              <p className="text-sm text-muted-foreground">{student.user?.email || 'N/A'}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(student.user?.status || 'INACTIVE')}</TableCell>
+                        <TableCell>{student.grade || 'N/A'}</TableCell>
+                        <TableCell className="text-center">{student.preferredTeachers?.length ?? 0}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {student.user?.createdAt ? new Date(student.user.createdAt).toLocaleDateString() : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Mail className="mr-2 h-4 w-4" />
+                                Send Email
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive">
+                                <Ban className="mr-2 h-4 w-4" />
+                                {student.user?.status === 'SUSPENDED' ? 'Unsuspend' : 'Suspend'}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -19,39 +19,11 @@ import {
 } from '@/shared/components/ui/dropdown-menu'
 import { Search, MoreVertical, Eye, Archive, Trash2 } from 'lucide-react'
 
-// Placeholder data
-const mockClasses = [
-  {
-    id: '1',
-    title: 'Advanced Mathematics',
-    teacher: 'John Smith',
-    subject: 'Mathematics',
-    grade: '11th',
-    status: 'ACTIVE',
-    enrolledStudents: 25,
-    capacity: 30,
-  },
-  {
-    id: '2',
-    title: 'English Literature',
-    teacher: 'Sarah Johnson',
-    subject: 'English',
-    grade: '10th',
-    status: 'ACTIVE',
-    enrolledStudents: 18,
-    capacity: 25,
-  },
-  {
-    id: '3',
-    title: 'Physics Fundamentals',
-    teacher: 'John Smith',
-    subject: 'Physics',
-    grade: '12th',
-    status: 'COMPLETED',
-    enrolledStudents: 20,
-    capacity: 20,
-  },
-]
+import { get } from '@/shared/services/api'
+import type { PaginatedResponse } from '@/shared/types/api.types'
+import type { Class } from '@/shared/types/class.types'
+
+const API_ENDPOINT = '/admin/classes'
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -70,11 +42,28 @@ const getStatusBadge = (status: string) => {
 
 export default function AdminClasses() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [classes, setClasses] = useState<Class[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const filteredClasses = mockClasses.filter(
+  // Fetch classes from backend
+  useEffect(() => {
+    setLoading(true)
+    get<PaginatedResponse<Class>>(API_ENDPOINT)
+      .then((res) => {
+        setClasses(res.data)
+        setError(null)
+      })
+      .catch((err) => {
+        setError(err.message || 'Failed to fetch classes')
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const filteredClasses = classes.filter(
     (cls) =>
       cls.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cls.teacher.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (cls.teacher?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       cls.subject.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
@@ -85,7 +74,6 @@ export default function AdminClasses() {
         <h1 className="text-3xl font-bold tracking-tight">Classes</h1>
         <p className="text-muted-foreground">View all classes on the platform</p>
       </div>
-
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -105,68 +93,72 @@ export default function AdminClasses() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Class</TableHead>
-                  <TableHead>Teacher</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Grade</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-center">Enrolled</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredClasses.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8">Loading classes...</div>
+          ) : error ? (
+            <div className="text-center py-8 text-destructive">{error}</div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No classes found
-                    </TableCell>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Teacher</TableHead>
+                    <TableHead>Subject</TableHead>
+                    <TableHead>Grade</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-center">Enrolled</TableHead>
+                    <TableHead className="text-center">Capacity</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
-                ) : (
-                  filteredClasses.map((cls) => (
-                    <TableRow key={cls.id}>
-                      <TableCell className="font-medium">{cls.title}</TableCell>
-                      <TableCell className="text-muted-foreground">{cls.teacher}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{cls.subject}</Badge>
-                      </TableCell>
-                      <TableCell>{cls.grade}</TableCell>
-                      <TableCell>{getStatusBadge(cls.status)}</TableCell>
-                      <TableCell className="text-center">
-                        {cls.enrolledStudents}/{cls.capacity}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Archive className="mr-2 h-4 w-4" />
-                              Archive
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                </TableHeader>
+                <TableBody>
+                  {filteredClasses.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        No classes found
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  ) : (
+                    filteredClasses.map((cls) => (
+                      <TableRow key={cls._id}>
+                        <TableCell>{cls.title}</TableCell>
+                        <TableCell>{cls.teacher?.name || 'N/A'}</TableCell>
+                        <TableCell>{cls.subject}</TableCell>
+                        <TableCell>{cls.grade}</TableCell>
+                        <TableCell>{getStatusBadge(cls.status)}</TableCell>
+                        <TableCell className="text-center">{cls.enrolledCount ?? 0}</TableCell>
+                        <TableCell className="text-center">{cls.capacity ?? 'N/A'}</TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Archive className="mr-2 h-4 w-4" />
+                                Archive
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
