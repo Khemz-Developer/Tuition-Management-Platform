@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Param, Query, Body, UseGuards } from '@nestjs/common';
 import { StudentService } from './student.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
@@ -15,6 +15,21 @@ export class StudentController {
   @Get('dashboard')
   async getDashboard(@CurrentUser() user: any) {
     return this.studentService.getDashboard(user.id);
+  }
+
+  @Get('profile')
+  async getProfile(@CurrentUser() user: any) {
+    return this.studentService.getProfile(user.id);
+  }
+
+  @Put('profile')
+  async updateProfile(@CurrentUser() user: any, @Body() body: any) {
+    return this.studentService.updateProfile(user.id, body);
+  }
+
+  @Put('change-password')
+  async changePassword(@CurrentUser() user: any, @Body() body: any) {
+    return this.studentService.changePassword(user.id, body);
   }
 
   @Get('classes')

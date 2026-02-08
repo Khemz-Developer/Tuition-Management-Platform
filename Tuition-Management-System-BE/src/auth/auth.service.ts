@@ -79,7 +79,7 @@ export class AuthService {
         userId: user._id,
         firstName,
         lastName,
-        grade: '', // Will be updated later
+        grade: 'Not Set', // Required field, set default value
       };
 
       // Link student to teacher if provided

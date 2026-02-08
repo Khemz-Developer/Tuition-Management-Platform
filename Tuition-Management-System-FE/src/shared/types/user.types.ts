@@ -69,13 +69,20 @@ export interface StudentProfile {
   _id: string
   userId: string
   user?: User
+  firstName?: string
+  lastName?: string
   grade?: string
   school?: string
   dateOfBirth?: string
+  phone?: string
   parentName?: string
   parentEmail?: string
   parentPhone?: string
+  parentContact?: string
+  relationship?: string
   address?: string
+  preferredSubjects?: string[]
+  learningGoals?: string
   preferredTeachers?: string[]
   registeredWithTeacherAt?: string
   createdAt: string

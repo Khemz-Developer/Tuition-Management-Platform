@@ -44,7 +44,7 @@ export default function StudentLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
-  const { theme, toggleTheme } = useTheme()
+  const { theme, setTheme, resolvedTheme } = useTheme()
   const { user, logout } = useAuth()
 
   const handleLogout = () => {
@@ -157,8 +157,12 @@ export default function StudentLayout() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={toggleTheme}>
-              {theme === 'dark' ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+            >
+              {resolvedTheme === 'dark' ? (
                 <Sun className="h-5 w-5" />
               ) : (
                 <Moon className="h-5 w-5" />
