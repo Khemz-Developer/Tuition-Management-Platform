@@ -114,10 +114,11 @@ export class StudentService {
     if (updateData.parentName !== undefined) student.parentName = updateData.parentName;
     if (updateData.parentContact !== undefined) student.parentContact = updateData.parentContact;
     if (updateData.parentPhone !== undefined) student.parentContact = updateData.parentPhone; // Map parentPhone to parentContact
-    if (updateData.parentEmail !== undefined) student.parentEmail = updateData.parentEmail;
     if (updateData.relationship !== undefined) student.relationship = updateData.relationship;
     if (updateData.learningGoals !== undefined) student.learningGoals = updateData.learningGoals;
     if (updateData.preferredSubjects !== undefined) student.preferredSubjects = updateData.preferredSubjects;
+    if (updateData.parentGuardianIdNo !== undefined) student.parentGuardianIdNo = updateData.parentGuardianIdNo;
+    if (updateData.image !== undefined) student.image = updateData.image;
 
     await student.save();
     

@@ -21,16 +21,41 @@ export interface TeacherProfile {
   user?: User
   slug: string
   status: TeacherStatus
-  bio?: string
+  firstName: string
+  lastName: string
   image?: string
   coverImage?: string
+  bio?: string
+  tagline?: string
   subjects: string[]
   grades: string[]
-  location?: string
   experience?: number
+  experienceLevel?: string
   qualifications?: string[]
+  location?: {
+    city?: string
+    state?: string
+    country?: string
+    address?: string
+    coordinates?: { lat: number; lng: number }
+  }
+  contact?: {
+    email?: string
+    phone?: string
+    whatsapp?: string
+    website?: string
+  }
+  pricing?: {
+    hourlyRate?: string
+    monthlyFee?: string
+    groupClassPrice?: string
+  }
   languages?: string[]
-  
+  stats?: {
+    totalStudents?: number
+    totalClasses?: number
+    averageAttendance?: number
+  }
   // Contact options
   showEmail?: boolean
   showPhone?: boolean
@@ -50,11 +75,6 @@ export interface TeacherProfile {
   
   // Website customization
   websiteConfig?: WebsiteConfig
-  
-  // Stats
-  totalStudents?: number
-  totalClasses?: number
-  averageRating?: number
   
   // Verification
   isVerified?: boolean
@@ -76,7 +96,8 @@ export interface StudentProfile {
   dateOfBirth?: string
   phone?: string
   parentName?: string
-  parentEmail?: string
+  image?: string
+  parentGuardianIdNo?: string
   parentPhone?: string
   parentContact?: string
   relationship?: string

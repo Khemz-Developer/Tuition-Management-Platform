@@ -26,11 +26,15 @@ export class StudentProfile {
   @Prop()
   parentName?: string;
 
+
   @Prop()
   parentContact?: string;
 
   @Prop()
-  parentEmail?: string;
+  parentGuardianIdNo?: string;
+
+  @Prop()
+  image?: string;
 
   @Prop()
   relationship?: string;

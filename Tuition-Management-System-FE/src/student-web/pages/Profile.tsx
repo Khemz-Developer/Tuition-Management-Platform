@@ -15,6 +15,7 @@ import { useAuth } from '@/shared/hooks/useAuth'
 import { useToast } from '@/shared/components/ui/use-toast'
 import { getInitials } from '@/lib/utils'
 import { get, put } from '@/shared/services/api'
+import { ImageCropper } from '@/shared/components/ImageCropper'
 import type { StudentProfile } from '@/shared/types/user.types'
 import { Camera, Save, Loader2 } from 'lucide-react'
 
@@ -28,7 +29,7 @@ const profileSchema = z.object({
   dateOfBirth: z.string().optional(),
   parentName: z.string().optional(),
   parentPhone: z.string().optional(),
-  parentEmail: z.string().email('Invalid email address').optional().or(z.literal('')),
+  parentGuardianIdNo: z.string().optional(),
   relationship: z.string().optional(),
   learningGoals: z.string().optional(),
 })
@@ -53,6 +54,13 @@ export default function StudentProfile() {
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingProfile, setIsLoadingProfile] = useState(true)
   const [profile, setProfile] = useState<StudentProfile | null>(null)
+  const [profileImage, setProfileImage] = useState<string | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<number>(0)
+  const [isUploading, setIsUploading] = useState(false)
+  const [showCropper, setShowCropper] = useState(false)
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
   const [stats] = useState({
     enrolledClasses: 0,
     completedSessions: 0,
@@ -99,10 +107,21 @@ export default function StudentProfile() {
         dateOfBirth: profileData.dateOfBirth ? new Date(profileData.dateOfBirth).toISOString().split('T')[0] : '',
         parentName: profileData.parentName || '',
         parentPhone: profileData.parentPhone || profileData.parentContact || '',
-        parentEmail: profileData.parentEmail || '',
+        parentGuardianIdNo: profileData.parentGuardianIdNo || '',
         relationship: profileData.relationship || '',
         learningGoals: profileData.learningGoals || '',
       })
+      
+      // Set profile image
+      if (profileData.image && typeof profileData.image === 'string') {
+        // Add cache-busting parameter to force refresh
+        const imageUrl = profileData.image.includes('?') 
+          ? `${profileData.image}&t=${Date.now()}` 
+          : `${profileData.image}?t=${Date.now()}`
+        setProfileImage(imageUrl)
+      } else {
+        setProfileImage(null)
+      }
 
       // TODO: Load stats from API
       // const statsData = await get('/student/stats')
@@ -118,9 +137,153 @@ export default function StudentProfile() {
     }
   }
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    processImageFile(file)
+    // Reset file input
+    e.target.value = ''
+  }
+
+  const handleCropComplete = (croppedFile: File) => {
+    setImageFile(croppedFile)
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setProfileImage(reader.result as string)
+    }
+    reader.readAsDataURL(croppedFile)
+    setShowCropper(false)
+    setImageToCrop(null)
+  }
+
+  const handleImageRemove = () => {
+    setImageFile(null)
+    setProfileImage(profile?.image || null)
+    setUploadProgress(0)
+    setShowCropper(false)
+    setImageToCrop(null)
+  }
+
+  const processImageFile = (file: File) => {
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload an image file (JPEG, PNG, WebP, or GIF)',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Image size must be less than 5MB',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Create preview and show cropper
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setImageToCrop(reader.result as string)
+      setShowCropper(true)
+    }
+    reader.readAsDataURL(file)
+    setUploadProgress(0)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    
+    const file = e.dataTransfer.files?.[0]
+    if (file) {
+      processImageFile(file)
+    }
+  }
+
   const onSubmit = async (data: ProfileFormData) => {
     try {
       setIsLoading(true)
+      
+      // Upload image if changed
+      let imageUrl: string | null = profileImage || null
+      if (imageFile) {
+        try {
+          setIsUploading(true)
+          setUploadProgress(0)
+          
+          const formData = new FormData()
+          formData.append('file', imageFile)
+          formData.append('folder', 'student-profiles')
+          
+          // Use axios directly for upload progress
+          const axios = (await import('axios')).default
+          const token = localStorage.getItem('accessToken')
+          const API_URL = (import.meta.env?.VITE_API_URL as string) || 'http://localhost:3000/api'
+          
+          const uploadResult = await axios.post<{ success: boolean; data: { url: string; publicId: string; message?: string } }>(
+            `${API_URL}/upload/image`,
+            formData,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+              onUploadProgress: (progressEvent) => {
+                if (progressEvent.total) {
+                  const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+                  setUploadProgress(percentCompleted)
+                }
+              },
+            }
+          )
+          
+          if (uploadResult?.data?.data?.url) {
+            imageUrl = uploadResult.data.data.url
+            // Add cache-busting parameter to force refresh
+            if (imageUrl && typeof imageUrl === 'string') {
+              const imageUrlWithCache = imageUrl.includes('?') 
+                ? `${imageUrl}&t=${Date.now()}` 
+                : `${imageUrl}?t=${Date.now()}`
+              setProfileImage(imageUrlWithCache)
+            }
+          } else {
+            console.error('Upload response:', uploadResult)
+            throw new Error('No image URL returned from upload')
+          }
+          
+          toast({
+            title: 'Image uploaded',
+            description: 'Profile picture uploaded successfully',
+            variant: 'default',
+          })
+        } catch (error: any) {
+          toast({
+            title: 'Upload failed',
+            description: error.response?.data?.message || error.message || 'Failed to upload image',
+            variant: 'destructive',
+          })
+          // Don't proceed with profile update if image upload failed
+          return
+        } finally {
+          setIsUploading(false)
+          setUploadProgress(0)
+        }
+      }
       
       const updateData: any = {
         firstName: data.firstName,
@@ -134,9 +297,10 @@ export default function StudentProfile() {
       if (data.dateOfBirth) updateData.dateOfBirth = data.dateOfBirth
       if (data.parentName) updateData.parentName = data.parentName
       if (data.parentPhone) updateData.parentContact = data.parentPhone
-      if (data.parentEmail) updateData.parentEmail = data.parentEmail
+      if (data.parentGuardianIdNo) updateData.parentGuardianIdNo = data.parentGuardianIdNo
       if (data.relationship) updateData.relationship = data.relationship
       if (data.learningGoals) updateData.learningGoals = data.learningGoals
+      if (imageUrl) updateData.image = imageUrl
 
       const updatedProfile = await put<StudentProfile>('/student/profile', updateData)
       setProfile(updatedProfile)
@@ -146,6 +310,14 @@ export default function StudentProfile() {
         title: 'Success',
         description: 'Profile updated successfully',
       })
+      
+      // Clear image file since it's now uploaded
+      if (imageFile) {
+        setImageFile(null)
+      }
+      
+      // Reload profile to get latest data from server
+      await loadProfile()
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -247,20 +419,44 @@ export default function StudentProfile() {
                 <div className="flex flex-col items-center text-center">
                   <div className="relative">
                     <Avatar className="w-24 h-24">
-                      <AvatarImage src={profile?.user?.avatar || user?.avatar} />
+                      <AvatarImage src={profileImage || profile?.image || profile?.user?.avatar || user?.avatar} />
                       <AvatarFallback className="text-2xl">
                         {getInitials(displayName)}
                       </AvatarFallback>
                     </Avatar>
                     {isEditing && (
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        className="absolute -bottom-2 -right-2 rounded-full"
-                        disabled
-                      >
-                        <Camera className="h-4 w-4" />
-                      </Button>
+                      <>
+                        <input
+                          type="file"
+                          ref={(input) => {
+                            if (input && !input.dataset.listenerAdded) {
+                              input.dataset.listenerAdded = 'true'
+                              input.addEventListener('change', (e) => {
+                                const target = e.target as HTMLInputElement
+                                if (target.files?.[0]) {
+                                  handleImageUpload({ target } as React.ChangeEvent<HTMLInputElement>)
+                                }
+                              })
+                            }
+                          }}
+                          accept="image/*"
+                          className="hidden"
+                          id="profile-image-upload"
+                        />
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="absolute -bottom-2 -right-2 rounded-full"
+                          onClick={() => document.getElementById('profile-image-upload')?.click()}
+                          disabled={isUploading}
+                        >
+                          {isUploading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Camera className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </>
                     )}
                   </div>
                   <h2 className="mt-4 text-xl font-semibold">{displayName}</h2>
@@ -442,15 +638,15 @@ export default function StudentProfile() {
                         )}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="parentEmail">Parent/Guardian Email</Label>
+                        <Label htmlFor="parentGuardianIdNo">Parent/Guardian ID No</Label>
                         <Input
-                          id="parentEmail"
-                          type="email"
-                          {...register('parentEmail')}
+                          id="parentGuardianIdNo"
+                          {...register('parentGuardianIdNo')}
                           disabled={!isEditing}
+                          placeholder="Enter ID number"
                         />
-                        {errors.parentEmail && (
-                          <p className="text-sm text-destructive">{errors.parentEmail.message}</p>
+                        {errors.parentGuardianIdNo && (
+                          <p className="text-sm text-destructive">{errors.parentGuardianIdNo.message}</p>
                         )}
                       </div>
                     </div>
@@ -537,6 +733,19 @@ export default function StudentProfile() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Image Cropper Modal */}
+      <ImageCropper
+        image={imageToCrop || ''}
+        open={showCropper}
+        onClose={() => {
+          setShowCropper(false)
+          setImageToCrop(null)
+        }}
+        onCropComplete={handleCropComplete}
+        aspect={1}
+        cropShape="round"
+      />
     </div>
   )
 }

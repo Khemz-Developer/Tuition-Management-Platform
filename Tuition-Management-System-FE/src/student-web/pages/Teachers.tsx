@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card'
+import { Card, CardContent } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Badge } from '@/shared/components/ui/badge'
@@ -12,70 +12,69 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
-import { Search, Star, Users, BookOpen, MessageSquare } from 'lucide-react'
+import { Search, Users, BookOpen, MessageSquare, Loader2 } from 'lucide-react'
 import { getInitials } from '@/lib/utils'
-
-// Placeholder data
-const mockTeachers = [
-  {
-    id: '1',
-    name: 'John Smith',
-    bio: 'Experienced mathematics teacher with 10+ years of teaching experience. Expert in calculus and competitive exam preparation.',
-    subjects: ['Mathematics', 'Physics'],
-    rating: 4.9,
-    reviews: 156,
-    students: 500,
-    classes: 12,
-    priceRange: '₹4,000 - ₹6,000',
-  },
-  {
-    id: '2',
-    name: 'Sarah Johnson',
-    bio: 'Passionate English teacher specializing in literature and creative writing. Making learning fun and interactive.',
-    subjects: ['English', 'Literature'],
-    rating: 4.8,
-    reviews: 98,
-    students: 320,
-    classes: 8,
-    priceRange: '₹3,000 - ₹5,000',
-  },
-  {
-    id: '3',
-    name: 'Mike Wilson',
-    bio: 'Chemistry expert with PhD in organic chemistry. Simplified approach to complex concepts.',
-    subjects: ['Chemistry'],
-    rating: 4.7,
-    reviews: 75,
-    students: 250,
-    classes: 6,
-    priceRange: '₹4,500 - ₹5,500',
-  },
-  {
-    id: '4',
-    name: 'Emily Davis',
-    bio: 'Biology teacher with a focus on NEET preparation. High success rate in competitive exams.',
-    subjects: ['Biology'],
-    rating: 4.9,
-    reviews: 120,
-    students: 400,
-    classes: 10,
-    priceRange: '₹5,000 - ₹7,000',
-  },
-]
+import { get } from '@/shared/services/api'
+import { useToast } from '@/shared/components/ui/use-toast'
+import type { TeacherProfile } from '@/shared/types/user.types'
 
 export default function StudentTeachers() {
   const [searchQuery, setSearchQuery] = useState('')
   const [subjectFilter, setSubjectFilter] = useState('all')
+  const [teachers, setTeachers] = useState<TeacherProfile[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [allSubjects, setAllSubjects] = useState<string[]>([])
+  const { toast } = useToast()
 
-  const filteredTeachers = mockTeachers.filter((teacher) => {
+  // Load teachers from API
+  useEffect(() => {
+    loadTeachers()
+  }, [])
+
+  const loadTeachers = async () => {
+    try {
+      setIsLoading(true)
+      const response = await get<{ teachers: TeacherProfile[] }>('/public/teachers')
+      setTeachers(response.teachers)
+      
+      // Extract all unique subjects for filter
+      const subjects = new Set<string>()
+      response.teachers.forEach(teacher => {
+        teacher.subjects?.forEach(subject => {
+          subjects.add(subject)
+        })
+      })
+      setAllSubjects(Array.from(subjects).sort())
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to load teachers',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const filteredTeachers = teachers.filter((teacher) => {
+    const teacherName = `${teacher.firstName || ''} ${teacher.lastName || ''}`.trim()
     const matchesSearch =
-      teacher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      teacher.bio.toLowerCase().includes(searchQuery.toLowerCase())
+      teacherName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      teacher.bio?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      teacher.tagline?.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesSubject =
       subjectFilter === 'all' ||
-      teacher.subjects.some((s) => s.toLowerCase() === subjectFilter.toLowerCase())
+      teacher.subjects?.some((s) => s.toLowerCase() === subjectFilter.toLowerCase())
     return matchesSearch && matchesSubject
   })
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -104,11 +103,11 @@ export default function StudentTeachers() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Subjects</SelectItem>
-                <SelectItem value="mathematics">Mathematics</SelectItem>
-                <SelectItem value="physics">Physics</SelectItem>
-                <SelectItem value="chemistry">Chemistry</SelectItem>
-                <SelectItem value="biology">Biology</SelectItem>
-                <SelectItem value="english">English</SelectItem>
+                {allSubjects.map((subject) => (
+                  <SelectItem key={subject} value={subject.toLowerCase()}>
+                    {subject}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -129,58 +128,73 @@ export default function StudentTeachers() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
           {filteredTeachers.map((teacher) => (
-            <Card key={teacher.id}>
+            <Card key={teacher._id}>
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
                   <Avatar className="h-16 w-16">
                     <AvatarFallback className="text-xl">
-                      {getInitials(teacher.name)}
+                      {getInitials(`${teacher.firstName || ''} ${teacher.lastName || ''}`)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
                     <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="font-semibold text-lg">{teacher.name}</h3>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-medium">{teacher.rating}</span>
+                        <h3 className="font-semibold text-lg">
+                          {`${teacher.firstName || ''} ${teacher.lastName || ''}`.trim()}
+                        </h3>
+                        {teacher.tagline && (
+                          <p className="text-sm text-muted-foreground mt-1">{teacher.tagline}</p>
+                        )}
+                        <div className="flex items-center gap-1 text-sm mt-2">
                           <span className="text-muted-foreground">
-                            ({teacher.reviews} reviews)
+                            {teacher.experience ? `${teacher.experience} years experience` : 'Experienced'}
                           </span>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-primary">{teacher.priceRange}</p>
-                        <p className="text-xs text-muted-foreground">per month</p>
+                        {teacher.pricing?.monthlyFee && (
+                          <>
+                            <p className="font-medium text-primary">{teacher.pricing.monthlyFee}</p>
+                            <p className="text-xs text-muted-foreground">per month</p>
+                          </>
+                        )}
+                        {teacher.pricing?.hourlyRate && (
+                          <>
+                            <p className="font-medium text-primary">{teacher.pricing.hourlyRate}</p>
+                            <p className="text-xs text-muted-foreground">per hour</p>
+                          </>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {teacher.subjects.map((subject) => (
+                      {teacher.subjects?.map((subject) => (
                         <Badge key={subject} variant="secondary">
                           {subject}
                         </Badge>
                       ))}
                     </div>
 
-                    <p className="text-sm text-muted-foreground mt-3 line-clamp-2">
-                      {teacher.bio}
-                    </p>
+                    {teacher.bio && (
+                      <p className="text-sm text-muted-foreground mt-3 line-clamp-2">
+                        {teacher.bio}
+                      </p>
+                    )}
 
                     <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
-                        {teacher.students} students
+                        {teacher.stats?.totalStudents || 0} students
                       </span>
                       <span className="flex items-center gap-1">
                         <BookOpen className="h-4 w-4" />
-                        {teacher.classes} classes
+                        {teacher.stats?.totalClasses || 0} classes
                       </span>
                     </div>
 
                     <div className="flex gap-2 mt-4">
                       <Button variant="outline" className="flex-1" asChild>
-                        <Link to={`/student/teachers/${teacher.id}`}>
+                        <Link to={`/student/teachers/${teacher.slug}`}>
                           View Profile
                         </Link>
                       </Button>
