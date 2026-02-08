@@ -70,6 +70,12 @@ export class SocialLinks {
 
   @Prop()
   twitter?: string;
+
+  @Prop()
+  instagram?: string;
+
+  @Prop()
+  whatsapp?: string;
 }
 
 @Schema({ _id: false })
@@ -297,8 +303,22 @@ export class TeacherProfile {
   @Prop({ type: Contact, _id: false })
   contact?: Contact;
 
+  @Prop({ 
+    type: [{
+      _id: false,
+      level: { type: String, required: true },
+      subjects: [{ type: String }],
+      grades: [{ type: String }]
+    }]
+  })
+  educationLevels?: Array<{
+    level: string;
+    subjects: string[];
+    grades: string[];
+  }>;
+
   @Prop()
-  educationLevel?: string;
+  educationLevel?: string; // Keep for backward compatibility
 
   @Prop({ type: [String] })
   teachingModes?: string[];

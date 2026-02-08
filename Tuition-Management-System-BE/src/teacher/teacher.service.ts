@@ -111,12 +111,28 @@ export class TeacherService {
     if (updateData.tagline !== undefined) teacher.tagline = updateData.tagline;
     if (updateData.bio !== undefined) teacher.bio = updateData.bio;
     if (updateData.image !== undefined) teacher.image = updateData.image;
-    if (updateData.subjects !== undefined) teacher.subjects = updateData.subjects;
+    
+    // Handle education levels - new format takes precedence
+    if (updateData.educationLevels !== undefined) {
+      teacher.educationLevels = updateData.educationLevels;
+      // Clear old single education level fields when using new format
+      teacher.subjects = [];
+      teacher.grades = [];
+      teacher.educationLevel = '';
+    } else if (updateData.subjects !== undefined) {
+      // Legacy support for old format
+      teacher.subjects = updateData.subjects;
+    }
     if (updateData.grades !== undefined) teacher.grades = updateData.grades;
+    
     if (updateData.experience !== undefined) teacher.experience = updateData.experience;
     if (updateData.experienceLevel !== undefined) teacher.experienceLevel = updateData.experienceLevel;
     if (updateData.qualifications !== undefined) teacher.qualifications = updateData.qualifications;
-    if (updateData.educationLevel !== undefined) teacher.educationLevel = updateData.educationLevel;
+    
+    // Legacy education level support (only if not using new format)
+    if (updateData.educationLevel !== undefined && updateData.educationLevels === undefined) {
+      teacher.educationLevel = updateData.educationLevel;
+    }
     if (updateData.teachingModes !== undefined) teacher.teachingModes = updateData.teachingModes;
     if (updateData.languages !== undefined) teacher.languages = updateData.languages;
     if (updateData.studentTargetTypes !== undefined) teacher.studentTargetTypes = updateData.studentTargetTypes;
@@ -162,6 +178,8 @@ export class TeacherService {
       if (updateData.socialLinks.youtube !== undefined) teacher.socialLinks.youtube = updateData.socialLinks.youtube;
       if (updateData.socialLinks.facebook !== undefined) teacher.socialLinks.facebook = updateData.socialLinks.facebook;
       if (updateData.socialLinks.twitter !== undefined) teacher.socialLinks.twitter = updateData.socialLinks.twitter;
+      if (updateData.socialLinks.instagram !== undefined) teacher.socialLinks.instagram = updateData.socialLinks.instagram;
+      if (updateData.socialLinks.whatsapp !== undefined) teacher.socialLinks.whatsapp = updateData.socialLinks.whatsapp;
     }
 
     // Update availability

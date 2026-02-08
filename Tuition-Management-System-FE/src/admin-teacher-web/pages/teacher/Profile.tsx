@@ -17,28 +17,39 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui
 import { useAuth } from '@/shared/hooks/useAuth'
 import { useToast } from '@/shared/components/ui/use-toast'
 import { getInitials } from '@/lib/utils'
-import { post, get, put } from '@/shared/services/api'
+import { get, put } from '@/shared/services/api'
 import { ImageCropper } from '@/shared/components/ImageCropper'
 import {
-  Camera,
   Save,
   Upload,
   X,
   Eye,
   User,
-  Mail,
   Phone,
   MapPin,
   Briefcase,
-  GraduationCap,
   Link as LinkIcon,
 } from 'lucide-react'
 
-// Education levels and their subjects
-const educationLevels = {
-  PRIMARY: ['Mathematics', 'English', 'Environment', 'Sinhala', 'Tamil', 'Religion', 'Art', 'Music', 'Physical Education'],
-  OL: ['Mathematics', 'Science', 'History', 'English', 'Sinhala', 'Tamil', 'Buddhism', 'Catholicism', 'Islam', 'Hinduism', 'Geography', 'Commerce', 'ICT', 'Art', 'Music', 'Drama', 'Dancing'],
-  AL: ['Combined Maths', 'Physics', 'Chemistry', 'Biology', 'ICT', 'Economics', 'Accounting', 'Business Studies', 'Geography', 'History', 'Political Science', 'Logic', 'Sinhala', 'Tamil', 'English', 'Arabic', 'French', 'German', 'Japanese', 'Chinese'],
+// Education level configuration
+interface EducationLevelConfig {
+  subjects: string[]
+  grades: string[]
+}
+
+const educationLevels: Record<string, EducationLevelConfig> = {
+  PRIMARY: {
+    subjects: ['Mathematics', 'English', 'Environment', 'Sinhala', 'Tamil', 'Religion', 'Art', 'Music', 'Physical Education'],
+    grades: ['1', '2', '3', '4', '5']
+  },
+  OL: {
+    subjects: ['Mathematics', 'Science', 'History', 'English', 'Sinhala', 'Tamil', 'Buddhism', 'Catholicism', 'Islam', 'Hinduism', 'Geography', 'Commerce', 'ICT', 'Art', 'Music', 'Drama', 'Dancing'],
+    grades: ['6', '7', '8', '9', '10', '11']
+  },
+  AL: {
+    subjects: ['Combined Maths', 'Physics', 'Chemistry', 'Biology', 'ICT', 'Economics', 'Accounting', 'Business Studies', 'Geography', 'History', 'Political Science', 'Logic', 'Sinhala', 'Tamil', 'English', 'Arabic', 'French', 'German', 'Japanese', 'Chinese'],
+    grades: ['12', '13']
+  },
 }
 
 const experienceLevels = [
@@ -65,9 +76,11 @@ const profileSchema = z.object({
   bio: z.string().max(2000, 'Bio must be less than 2000 characters').optional(),
   
   // Education & Subjects
-  educationLevel: z.enum(['PRIMARY', 'OL', 'AL']).optional(),
-  subjects: z.array(z.string()).min(1, 'Select at least one subject'),
-  grades: z.array(z.string()).min(1, 'Select at least one grade'),
+  educationLevels: z.array(z.object({
+    level: z.enum(['PRIMARY', 'OL', 'AL']),
+    subjects: z.array(z.string()).min(1, 'Select at least one subject for each education level'),
+    grades: z.array(z.string()).min(1, 'Select at least one grade for each education level'),
+  })).min(1, 'Select at least one education level'),
   
   // Teaching Details
   teachingModes: z.array(z.string()).min(1, 'Select at least one teaching mode'),
@@ -103,6 +116,15 @@ const profileSchema = z.object({
   // Social Links
   linkedin: z.string().url('Invalid LinkedIn URL').optional().or(z.literal('')),
   youtube: z.string().url('Invalid YouTube URL').optional().or(z.literal('')),
+  facebook: z.string().url('Invalid Facebook URL').optional().or(z.literal('')),
+  twitter: z.string().url('Invalid Twitter URL').optional().or(z.literal('')),
+  instagram: z.string().url('Invalid Instagram URL').optional().or(z.literal('')),
+  whatsapp: z.string().optional().refine((val) => {
+    if (!val) return true
+    // Validate WhatsApp number (should start with + and contain 8-15 digits)
+    const whatsappRegex = /^\+[1-9]\d{7,14}$/
+    return whatsappRegex.test(val)
+  }, { message: 'Invalid WhatsApp number. Use format: +1234567890' }),
 })
 
 type ProfileFormData = z.infer<typeof profileSchema>
@@ -113,11 +135,8 @@ export default function TeacherProfile() {
   const [isLoading, setIsLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [profileData, setProfileData] = useState<any>(null)
-  const [selectedEducationLevel, setSelectedEducationLevel] = useState<string>('')
-  const [availableSubjects, setAvailableSubjects] = useState<string[]>([])
   const [profileImage, setProfileImage] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePublicId, setImagePublicId] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState<number>(0)
   const [isUploading, setIsUploading] = useState(false)
   const [showCropper, setShowCropper] = useState(false)
@@ -134,8 +153,7 @@ export default function TeacherProfile() {
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      subjects: [],
-      grades: [],
+      educationLevels: [],
       teachingModes: [],
       languages: [],
       studentTargetTypes: [],
@@ -144,8 +162,7 @@ export default function TeacherProfile() {
     },
   })
 
-  const watchedSubjects = watch('subjects')
-  const watchedGrades = watch('grades')
+  const watchedEducationLevels = watch('educationLevels')
   const watchedTeachingModes = watch('teachingModes')
   const watchedLanguages = watch('languages')
 
@@ -153,15 +170,6 @@ export default function TeacherProfile() {
   useEffect(() => {
     loadProfile()
   }, [])
-
-  // Update available subjects when education level changes
-  useEffect(() => {
-    if (selectedEducationLevel && educationLevels[selectedEducationLevel as keyof typeof educationLevels]) {
-      setAvailableSubjects(educationLevels[selectedEducationLevel as keyof typeof educationLevels])
-      // Clear selected subjects when level changes
-      setValue('subjects', [])
-    }
-  }, [selectedEducationLevel, setValue])
 
   const loadProfile = async () => {
     try {
@@ -175,7 +183,7 @@ export default function TeacherProfile() {
         let availabilityData: any = {}
         if (data.availability) {
           if (data.availability instanceof Map) {
-            data.availability.forEach((value, key) => {
+            data.availability.forEach((value: any, key: any) => {
               availabilityData[key] = value
             })
           } else {
@@ -183,14 +191,23 @@ export default function TeacherProfile() {
           }
         }
 
+        // Convert old education level format to new format if needed
+        let educationLevelsData = data.educationLevels || []
+        if (data.educationLevel && data.subjects && data.grades) {
+          // Convert old single education level format to new array format
+          educationLevelsData = [{
+            level: data.educationLevel,
+            subjects: data.subjects,
+            grades: data.grades
+          }]
+        }
+
         reset({
           name: data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : user?.name || '',
           phone: data.contact?.phone || '',
           tagline: data.tagline || '',
           bio: data.bio || '',
-          educationLevel: data.educationLevel || undefined,
-          subjects: data.subjects || [],
-          grades: data.grades || [],
+          educationLevels: educationLevelsData,
           teachingModes: data.teachingModes || [],
           experience: data.experienceLevel || data.experience || '',
           qualifications: data.qualifications || [],
@@ -205,12 +222,12 @@ export default function TeacherProfile() {
           onlinePlatforms: data.onlinePlatforms || [],
           linkedin: data.socialLinks?.linkedin || '',
           youtube: data.socialLinks?.youtube || '',
+          facebook: data.socialLinks?.facebook || '',
+          twitter: data.socialLinks?.twitter || '',
+          instagram: data.socialLinks?.instagram || '',
+          whatsapp: data.socialLinks?.whatsapp || '',
           availability: availabilityData,
         })
-        
-        if (data.educationLevel) {
-          setSelectedEducationLevel(data.educationLevel)
-        }
         
         if (data.image && typeof data.image === 'string') {
           // Add cache-busting parameter to force refresh
@@ -255,7 +272,6 @@ export default function TeacherProfile() {
   const handleImageRemove = () => {
     setImageFile(null)
     setProfileImage(profileData?.image || null)
-    setImagePublicId(null)
     setUploadProgress(0)
     setShowCropper(false)
     setImageToCrop(null)
@@ -313,20 +329,60 @@ export default function TeacherProfile() {
     }
   }
 
-  const handleSubjectToggle = (subject: string) => {
-    const current = watchedSubjects || []
-    const newSubjects = current.includes(subject)
-      ? current.filter(s => s !== subject)
-      : [...current, subject]
-    setValue('subjects', newSubjects)
+  // Handler functions for education levels
+  const handleEducationLevelToggle = (level: 'PRIMARY' | 'OL' | 'AL') => {
+    const current = watchedEducationLevels || []
+    const existingIndex = current.findIndex(el => el.level === level)
+    
+    if (existingIndex >= 0) {
+      // Remove education level
+      const newLevels = current.filter(el => el.level !== level)
+      setValue('educationLevels', newLevels)
+    } else {
+      // Add education level with empty subjects and grades
+      const newLevels = [...current, {
+        level,
+        subjects: [],
+        grades: []
+      }]
+      setValue('educationLevels', newLevels)
+    }
   }
 
-  const handleGradeToggle = (grade: string) => {
-    const current = watchedGrades || []
-    const newGrades = current.includes(grade)
-      ? current.filter(g => g !== grade)
-      : [...current, grade]
-    setValue('grades', newGrades)
+  const handleSubjectToggle = (educationLevel: 'PRIMARY' | 'OL' | 'AL', subject: string) => {
+    const current = watchedEducationLevels || []
+    const levelIndex = current.findIndex(el => el.level === educationLevel)
+    
+    if (levelIndex >= 0) {
+      const updatedLevels = [...current]
+      const currentSubjects = updatedLevels[levelIndex].subjects || []
+      
+      if (currentSubjects.includes(subject)) {
+        updatedLevels[levelIndex].subjects = currentSubjects.filter(s => s !== subject)
+      } else {
+        updatedLevels[levelIndex].subjects = [...currentSubjects, subject]
+      }
+      
+      setValue('educationLevels', updatedLevels)
+    }
+  }
+
+  const handleGradeToggle = (educationLevel: 'PRIMARY' | 'OL' | 'AL', grade: string) => {
+    const current = watchedEducationLevels || []
+    const levelIndex = current.findIndex(el => el.level === educationLevel)
+    
+    if (levelIndex >= 0) {
+      const updatedLevels = [...current]
+      const currentGrades = updatedLevels[levelIndex].grades || []
+      
+      if (currentGrades.includes(grade)) {
+        updatedLevels[levelIndex].grades = currentGrades.filter(g => g !== grade)
+      } else {
+        updatedLevels[levelIndex].grades = [...currentGrades, grade]
+      }
+      
+      setValue('educationLevels', updatedLevels)
+    }
   }
 
   const handleTeachingModeToggle = (mode: string) => {
@@ -401,9 +457,6 @@ export default function TeacherProfile() {
           
           if (uploadResult?.data?.data?.url) {
             imageUrl = uploadResult.data.data.url
-            if (uploadResult.data.data.publicId) {
-              setImagePublicId(uploadResult.data.data.publicId)
-            }
             // Add cache-busting parameter to force refresh
             if (imageUrl && typeof imageUrl === 'string') {
               const imageUrlWithCache = imageUrl.includes('?') 
@@ -438,9 +491,7 @@ export default function TeacherProfile() {
       const updateData: any = {
         tagline: data.tagline || undefined,
         bio: data.bio || undefined,
-        educationLevel: selectedEducationLevel || undefined,
-        subjects: data.subjects || [],
-        grades: data.grades || [],
+        educationLevels: data.educationLevels || [],
         teachingModes: data.teachingModes || [],
         experienceLevel: data.experience || undefined,
         qualifications: data.qualifications?.filter(q => q && q.trim() !== '') || [],
@@ -476,10 +527,14 @@ export default function TeacherProfile() {
       }
 
       // Add social links if any are provided
-      if (data.linkedin || data.youtube) {
+      if (data.linkedin || data.youtube || data.facebook || data.twitter || data.instagram || data.whatsapp) {
         updateData.socialLinks = {
           linkedin: data.linkedin || undefined,
           youtube: data.youtube || undefined,
+          facebook: data.facebook || undefined,
+          twitter: data.twitter || undefined,
+          instagram: data.instagram || undefined,
+          whatsapp: data.whatsapp || undefined,
         }
       }
 
@@ -594,6 +649,10 @@ export default function TeacherProfile() {
     socialLinks: {
       linkedin: profileData?.socialLinks?.linkedin || '',
       youtube: profileData?.socialLinks?.youtube || '',
+      facebook: profileData?.socialLinks?.facebook || '',
+      twitter: profileData?.socialLinks?.twitter || '',
+      instagram: profileData?.socialLinks?.instagram || '',
+      whatsapp: profileData?.socialLinks?.whatsapp || '',
     },
     stats: {
       totalStudents: profileData?.stats?.totalStudents || 0,
@@ -734,9 +793,9 @@ export default function TeacherProfile() {
                       <div className="space-y-2">
                         <Label>Qualifications</Label>
                         <div className="flex flex-wrap gap-2">
-                          {profile.qualifications.map((qual: string) => (
-                            <Badge key={qual} variant="outline">
-                              {qual}
+                          {profile.qualifications.map((qualification: string) => (
+                            <Badge key={qualification} variant="outline">
+                              {qualification}
                             </Badge>
                           ))}
                         </div>
@@ -783,6 +842,70 @@ export default function TeacherProfile() {
                           >
                             <LinkIcon className="h-4 w-4" />
                             {profile.socialLinks.youtube}
+                          </a>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Not set</p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Facebook</Label>
+                        {profile.socialLinks.facebook ? (
+                          <a
+                            href={profile.socialLinks.facebook}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-primary hover:underline"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                            {profile.socialLinks.facebook}
+                          </a>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Not set</p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Twitter</Label>
+                        {profile.socialLinks.twitter ? (
+                          <a
+                            href={profile.socialLinks.twitter}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-primary hover:underline"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                            {profile.socialLinks.twitter}
+                          </a>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Not set</p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Instagram</Label>
+                        {profile.socialLinks.instagram ? (
+                          <a
+                            href={profile.socialLinks.instagram}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-primary hover:underline"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                            {profile.socialLinks.instagram}
+                          </a>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Not set</p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>WhatsApp</Label>
+                        {profile.socialLinks.whatsapp ? (
+                          <a
+                            href={`https://wa.me/${profile.socialLinks.whatsapp.replace('+', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-primary hover:underline"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                            {profile.socialLinks.whatsapp}
                           </a>
                         ) : (
                           <p className="text-sm text-muted-foreground">Not set</p>
@@ -975,78 +1098,84 @@ export default function TeacherProfile() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                       <div className="space-y-2">
-                        <Label>Education Level *</Label>
-                        <Select
-                          value={selectedEducationLevel}
-                          onValueChange={(value) => {
-                            setSelectedEducationLevel(value)
-                            setValue('educationLevel', value as 'PRIMARY' | 'OL' | 'AL')
-                            setValue('subjects', [])
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select education level" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="PRIMARY">Primary</SelectItem>
-                            <SelectItem value="OL">O/L (Ordinary Level)</SelectItem>
-                            <SelectItem value="AL">A/L (Advanced Level)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          Select your education level first, then choose relevant subjects
-                        </p>
-                      </div>
-
-                      {selectedEducationLevel && (
-                        <div className="space-y-2">
-                          <Label>Subjects *</Label>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border rounded-md max-h-60 overflow-y-auto">
-                            {availableSubjects.map((subject) => (
-                              <div key={subject} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`subject-${subject}`}
-                                  checked={watchedSubjects?.includes(subject) || false}
-                                  onCheckedChange={() => handleSubjectToggle(subject)}
-                                />
-                                <Label
-                                  htmlFor={`subject-${subject}`}
-                                  className="text-sm font-normal cursor-pointer flex-1"
-                                >
-                                  {subject}
-                                </Label>
-                              </div>
-                            ))}
-                          </div>
-                          {errors.subjects && (
-                            <p className="text-sm text-destructive">{errors.subjects.message}</p>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="space-y-2">
-                        <Label>Grades *</Label>
-                        <div className="grid grid-cols-4 md:grid-cols-6 gap-2 p-3 border rounded-md max-h-60 overflow-y-auto">
-                          {['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'].map((grade) => (
-                            <div key={grade} className="flex items-center space-x-2">
+                        <Label>Education Levels *</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {Object.keys(educationLevels).map((level) => (
+                            <div key={level} className="flex items-center space-x-2 p-3 border rounded-md">
                               <Checkbox
-                                id={`grade-${grade}`}
-                                checked={watchedGrades?.includes(grade) || false}
-                                onCheckedChange={() => handleGradeToggle(grade)}
+                                id={`level-${level}`}
+                                checked={watchedEducationLevels?.some(el => el.level === level) || false}
+                                onCheckedChange={() => handleEducationLevelToggle(level as 'PRIMARY' | 'OL' | 'AL')}
                               />
-                              <Label
-                                htmlFor={`grade-${grade}`}
-                                className="text-sm font-normal cursor-pointer"
-                              >
-                                Grade {grade}
+                              <Label htmlFor={`level-${level}`} className="cursor-pointer flex-1">
+                                {level === 'PRIMARY' ? 'Primary' : level === 'OL' ? 'O/L (Ordinary Level)' : 'A/L (Advanced Level)'}
                               </Label>
                             </div>
                           ))}
                         </div>
-                        {errors.grades && (
-                          <p className="text-sm text-destructive">{errors.grades.message}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Select all education levels you teach. Each level will have its own subjects and grades.
+                        </p>
+                        {errors.educationLevels && (
+                          <p className="text-sm text-destructive">{errors.educationLevels.message}</p>
                         )}
                       </div>
+
+                      {watchedEducationLevels?.map((eduLevel) => (
+                        <Card key={eduLevel.level} className="border-l-4 border-l-primary">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg">
+                              {eduLevel.level === 'PRIMARY' ? 'Primary' : eduLevel.level === 'OL' ? 'O/L (Ordinary Level)' : 'A/L (Advanced Level)'}
+                            </CardTitle>
+                            <CardDescription>
+                              Select subjects and grades for {eduLevel.level === 'PRIMARY' ? 'Primary' : eduLevel.level === 'OL' ? 'O/L' : 'A/L'}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                              <Label>Subjects for this level *</Label>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 border rounded-md max-h-60 overflow-y-auto">
+                                {educationLevels[eduLevel.level].subjects.map((subject) => (
+                                  <div key={subject} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`subject-${eduLevel.level}-${subject}`}
+                                      checked={eduLevel.subjects?.includes(subject) || false}
+                                      onCheckedChange={() => handleSubjectToggle(eduLevel.level, subject)}
+                                    />
+                                    <Label
+                                      htmlFor={`subject-${eduLevel.level}-${subject}`}
+                                      className="text-sm font-normal cursor-pointer flex-1"
+                                    >
+                                      {subject}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Grades for this level *</Label>
+                              <div className="grid grid-cols-4 md:grid-cols-6 gap-2 p-3 border rounded-md max-h-60 overflow-y-auto">
+                                {educationLevels[eduLevel.level].grades.map((grade) => (
+                                  <div key={grade} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`grade-${eduLevel.level}-${grade}`}
+                                      checked={eduLevel.grades?.includes(grade) || false}
+                                      onCheckedChange={() => handleGradeToggle(eduLevel.level, grade)}
+                                    />
+                                    <Label
+                                      htmlFor={`grade-${eduLevel.level}-${grade}`}
+                                      className="text-sm font-normal cursor-pointer"
+                                    >
+                                      Grade {grade}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -1119,7 +1248,7 @@ export default function TeacherProfile() {
                       <div className="space-y-2">
                         <Label>Qualifications</Label>
                         <div className="space-y-2">
-                          {watch('qualifications')?.map((qual, index) => (
+                          {watch('qualifications')?.map((qualification, index) => (
                             <div key={index} className="flex gap-2">
                               <Input
                                 placeholder="e.g., BSc Mathematics – University of Ruhuna"
@@ -1222,6 +1351,45 @@ export default function TeacherProfile() {
                               {...register('youtube')}
                               error={errors.youtube?.message}
                             />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="facebook">Facebook</Label>
+                            <Input
+                              id="facebook"
+                              placeholder="https://facebook.com/yourpage"
+                              {...register('facebook')}
+                              error={errors.facebook?.message}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="twitter">Twitter</Label>
+                            <Input
+                              id="twitter"
+                              placeholder="https://twitter.com/yourhandle"
+                              {...register('twitter')}
+                              error={errors.twitter?.message}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="instagram">Instagram</Label>
+                            <Input
+                              id="instagram"
+                              placeholder="https://instagram.com/yourhandle"
+                              {...register('instagram')}
+                              error={errors.instagram?.message}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="whatsapp">WhatsApp</Label>
+                            <Input
+                              id="whatsapp"
+                              placeholder="+1234567890"
+                              {...register('whatsapp')}
+                              error={errors.whatsapp?.message}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Enter your WhatsApp number with country code (e.g., +1234567890)
+                            </p>
                           </div>
                         </div>
                       </div>

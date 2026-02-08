@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
 import { Badge } from '@/shared/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/shared/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar'
 import {
   Select,
   SelectContent,
@@ -132,6 +132,7 @@ export default function StudentTeachers() {
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
                   <Avatar className="h-16 w-16">
+                    <AvatarImage src={teacher.image ? (teacher.image.includes('?') ? `${teacher.image}&t=${Date.now()}` : `${teacher.image}?t=${Date.now()}`) : undefined} />
                     <AvatarFallback className="text-xl">
                       {getInitials(`${teacher.firstName || ''} ${teacher.lastName || ''}`)}
                     </AvatarFallback>
