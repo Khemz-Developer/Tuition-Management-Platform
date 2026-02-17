@@ -5,6 +5,7 @@ import { TeacherProfile, TeacherProfileDocument, TeacherStatus } from '../models
 import { Class, ClassDocument } from '../models/class.schema';
 import { StudentProfile, StudentProfileDocument } from '../models/student-profile.schema';
 import { User, UserDocument } from '../models/user.schema';
+import { DynamicConfigService } from '../admin/dynamic-config.service';
 
 @Injectable()
 export class TeacherService {
@@ -13,6 +14,7 @@ export class TeacherService {
     @InjectModel(Class.name) private classModel: Model<ClassDocument>,
     @InjectModel(StudentProfile.name) private studentProfileModel: Model<StudentProfileDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private dynamicConfigService: DynamicConfigService,
   ) {}
 
   async getDashboard(teacherId: string) {
@@ -270,6 +272,190 @@ export class TeacherService {
         limit: query.limit || 50,
         skip: query.skip || 0,
       },
+    };
+  }
+
+  // Dynamic Profile Methods
+  async getDynamicProfileConfig() {
+    return await this.dynamicConfigService.getPublicConfig();
+  }
+
+  async getDynamicProfile(teacherId: string) {
+    const teacher = await this.teacherProfileModel.findOne({ userId: teacherId });
+    if (!teacher) {
+      throw new NotFoundException('Teacher profile not found');
+    }
+
+    const config = await this.dynamicConfigService.getPublicConfig();
+    
+    return {
+      teacher: teacher.toObject(),
+      config,
+      usesDynamicProfile: teacher.usesDynamicProfile,
+      dynamicProfile: teacher.dynamicProfile,
+      profileLayout: teacher.profileLayout,
+    };
+  }
+
+  async updateDynamicProfile(teacherId: string, updateData: any) {
+    const teacher = await this.teacherProfileModel.findOne({ userId: teacherId });
+    if (!teacher) {
+      throw new NotFoundException('Teacher profile not found');
+    }
+
+    // Enable dynamic profile if not already enabled
+    if (!teacher.usesDynamicProfile) {
+      teacher.usesDynamicProfile = true;
+    }
+
+    // Initialize dynamic profile if it doesn't exist
+    if (!teacher.dynamicProfile) {
+      teacher.dynamicProfile = {
+        sectionData: {},
+        customFields: {},
+        lastUpdated: new Date(),
+      };
+    }
+
+    // Update dynamic profile data
+    if (updateData.sectionData) {
+      teacher.dynamicProfile.sectionData = {
+        ...teacher.dynamicProfile.sectionData,
+        ...updateData.sectionData,
+      };
+    }
+
+    if (updateData.customFields) {
+      teacher.dynamicProfile.customFields = {
+        ...teacher.dynamicProfile.customFields,
+        ...updateData.customFields,
+      };
+    }
+
+    if (updateData.templateId) {
+      teacher.dynamicProfile.templateId = updateData.templateId;
+    }
+
+    // Update profile layout if provided
+    if (updateData.profileLayout) {
+      teacher.profileLayout = updateData.profileLayout;
+    }
+
+    teacher.dynamicProfile.lastUpdated = new Date();
+
+    await teacher.save();
+
+    // Convert to plain object and handle Map conversion
+    const response = teacher.toObject();
+    if (response.availability && response.availability instanceof Map) {
+      const availabilityObj: any = {};
+      response.availability.forEach((value, key) => {
+        availabilityObj[key] = value;
+      });
+      response.availability = availabilityObj;
+    }
+
+    return response;
+  }
+
+  async enableDynamicProfile(teacherId: string, templateId?: string) {
+    const teacher = await this.teacherProfileModel.findOne({ userId: teacherId });
+    if (!teacher) {
+      throw new NotFoundException('Teacher profile not found');
+    }
+
+    teacher.usesDynamicProfile = true;
+    
+    if (!teacher.dynamicProfile) {
+      teacher.dynamicProfile = {
+        sectionData: {},
+        customFields: {},
+        lastUpdated: new Date(),
+        templateId,
+      };
+    } else if (templateId) {
+      teacher.dynamicProfile.templateId = templateId;
+    }
+
+    await teacher.save();
+
+    return { message: 'Dynamic profile enabled successfully', teacher: teacher.toObject() };
+  }
+
+  async disableDynamicProfile(teacherId: string) {
+    const teacher = await this.teacherProfileModel.findOne({ userId: teacherId });
+    if (!teacher) {
+      throw new NotFoundException('Teacher profile not found');
+    }
+
+    teacher.usesDynamicProfile = false;
+    await teacher.save();
+
+    return { message: 'Dynamic profile disabled successfully' };
+  }
+
+  async updateProfileLayout(teacherId: string, layout: any[]) {
+    const teacher = await this.teacherProfileModel.findOne({ userId: teacherId });
+    if (!teacher) {
+      throw new NotFoundException('Teacher profile not found');
+    }
+
+    teacher.profileLayout = layout;
+    await teacher.save();
+
+    return { message: 'Profile layout updated successfully', layout: teacher.profileLayout };
+  }
+
+  async getProfileTemplate(templateId: string) {
+    const config = await this.dynamicConfigService.getConfig();
+    const template = config.profileTemplates?.find(t => t.id === templateId);
+    
+    if (!template) {
+      throw new NotFoundException(`Template with ID "${templateId}" not found`);
+    }
+
+    return template;
+  }
+
+  async applyProfileTemplate(teacherId: string, templateId: string) {
+    const teacher = await this.teacherProfileModel.findOne({ userId: teacherId });
+    if (!teacher) {
+      throw new NotFoundException('Teacher profile not found');
+    }
+
+    const template = await this.getProfileTemplate(templateId);
+
+    // Enable dynamic profile if not already enabled
+    if (!teacher.usesDynamicProfile) {
+      teacher.usesDynamicProfile = true;
+    }
+
+    if (!teacher.dynamicProfile) {
+      teacher.dynamicProfile = {
+        sectionData: {},
+        customFields: {},
+        lastUpdated: new Date(),
+      };
+    }
+
+    // Apply template sections as profile layout
+    teacher.profileLayout = template.sections.map(section => ({
+      id: section.id,
+      type: section.type,
+      order: section.order,
+      visible: section.visible,
+      config: section.config || {},
+    }));
+
+    teacher.dynamicProfile.templateId = templateId;
+    teacher.dynamicProfile.lastUpdated = new Date();
+
+    await teacher.save();
+
+    return { 
+      message: 'Profile template applied successfully', 
+      template: template.id,
+      layout: teacher.profileLayout 
     };
   }
 }

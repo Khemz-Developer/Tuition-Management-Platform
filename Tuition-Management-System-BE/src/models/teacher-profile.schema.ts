@@ -253,6 +253,21 @@ export class Stats {
   averageAttendance: number;
 }
 
+@Schema({ _id: false })
+export class DynamicProfileData {
+  @Prop({ type: Object })
+  sectionData?: Record<string, any>;
+
+  @Prop({ type: Object })
+  customFields?: Record<string, any>;
+
+  @Prop({ default: Date.now })
+  lastUpdated?: Date;
+
+  @Prop()
+  templateId?: string;
+}
+
 @Schema({ timestamps: true })
 export class TeacherProfile {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, unique: true, index: true })
@@ -352,6 +367,16 @@ export class TeacherProfile {
 
   @Prop({ type: Verification, _id: false })
   verification?: Verification;
+
+  // New dynamic profile support
+  @Prop({ type: DynamicProfileData, _id: false })
+  dynamicProfile?: DynamicProfileData;
+
+  @Prop({ type: [SectionConfig], _id: false })
+  profileLayout?: SectionConfig[];
+
+  @Prop({ default: false })
+  usesDynamicProfile: boolean;
 
   @Prop()
   rejectionReason?: string;

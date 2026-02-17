@@ -19,6 +19,8 @@ import {
   Sun,
   Bell,
   ChevronDown,
+  Settings,
+  Zap,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import {
@@ -41,6 +43,7 @@ const navItems = [
   { to: '/teacher/messages', label: 'Messages', icon: MessageSquare },
   { to: '/teacher/leads', label: 'Leads', icon: Users },
   { to: '/teacher/profile', label: 'Profile', icon: User },
+  { to: '/teacher/profile/dynamic', label: 'Dynamic Profile', icon: Zap },
   { to: '/teacher/profile/website', label: 'My Website', icon: Globe },
 ]
 

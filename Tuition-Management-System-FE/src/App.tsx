@@ -10,6 +10,7 @@ import AdminStudents from './admin-teacher-web/pages/admin/Students'
 import AdminClasses from './admin-teacher-web/pages/admin/Classes'
 import AdminSettings from './admin-teacher-web/pages/admin/Settings'
 import AdminAuditLogs from './admin-teacher-web/pages/admin/AuditLogs'
+import DynamicConfig from './admin-teacher-web/pages/admin/DynamicConfig'
 import TeacherDashboard from './admin-teacher-web/pages/teacher/Dashboard'
 import TeacherClasses from './admin-teacher-web/pages/teacher/Classes'
 import TeacherClassDetail from './admin-teacher-web/pages/teacher/ClassDetail'
@@ -18,6 +19,7 @@ import TeacherAttendance from './admin-teacher-web/pages/teacher/Attendance'
 import TeacherContent from './admin-teacher-web/pages/teacher/Content'
 import TeacherMessages from './admin-teacher-web/pages/teacher/Messages'
 import TeacherProfile from './admin-teacher-web/pages/teacher/Profile'
+import DynamicProfile from './admin-teacher-web/pages/teacher/DynamicProfile'
 import TeacherLeads from './admin-teacher-web/pages/teacher/Leads'
 import TeacherWebsite from './admin-teacher-web/pages/teacher/Website'
 
@@ -85,6 +87,7 @@ function App() {
             <Route path="/admin/classes" element={<AdminClasses />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+            <Route path="/admin/dynamic-config" element={<DynamicConfig />} />
           </Route>
         </Route>
       </Route>
@@ -107,6 +110,7 @@ function App() {
             <Route path="/teacher/content" element={<TeacherContent />} />
             <Route path="/teacher/messages" element={<TeacherMessages />} />
             <Route path="/teacher/profile" element={<TeacherProfile />} />
+            <Route path="/teacher/profile/dynamic" element={<DynamicProfile />} />
             <Route path="/teacher/profile/website" element={<TeacherWebsite />} />
             <Route path="/teacher/leads" element={<TeacherLeads />} />
           </Route>

@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cmd /c \"set NODE_OPTIONS= && cd /d c:\\\\Users\\\\jalit\\\\OneDrive\\\\Desktop\\\\Tution\\\\Tuition-Management-System\\\\Tuition-Management-System-BE && node dist/main\\.js\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

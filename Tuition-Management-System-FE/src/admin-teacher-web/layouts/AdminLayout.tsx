@@ -16,6 +16,7 @@ import {
   Sun,
   Bell,
   ChevronDown,
+  Sliders,
 } from 'lucide-react'
 import { Button } from '@/shared/components/ui/button'
 import {
@@ -36,6 +37,7 @@ const navItems = [
   { to: '/admin/classes', label: 'Classes', icon: BookOpen },
   { to: '/admin/audit-logs', label: 'Audit Logs', icon: FileText },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
+  { to: '/admin/dynamic-config', label: 'Dynamic Config', icon: Sliders },
 ]
 
 export default function AdminLayout() {

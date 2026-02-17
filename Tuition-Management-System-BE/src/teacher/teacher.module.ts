@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TeacherController } from './teacher.controller';
 import { TeacherService } from './teacher.service';
+import { DynamicProfileController } from './dynamic-profile.controller';
+import { DynamicConfigService } from '../admin/dynamic-config.service';
 import { User, UserSchema } from '../models/user.schema';
 import { TeacherProfile, TeacherProfileSchema } from '../models/teacher-profile.schema';
 import { StudentProfile, StudentProfileSchema } from '../models/student-profile.schema';
@@ -13,6 +15,7 @@ import { Unit, UnitSchema } from '../models/unit.schema';
 import { Lesson, LessonSchema } from '../models/lesson.schema';
 import { Material, MaterialSchema } from '../models/material.schema';
 import { Lead, LeadSchema } from '../models/lead.schema';
+import { DynamicConfig, DynamicConfigSchema } from '../models/dynamic-config.schema';
 
 @Module({
   imports: [
@@ -28,10 +31,11 @@ import { Lead, LeadSchema } from '../models/lead.schema';
       { name: Lesson.name, schema: LessonSchema },
       { name: Material.name, schema: MaterialSchema },
       { name: Lead.name, schema: LeadSchema },
+      { name: DynamicConfig.name, schema: DynamicConfigSchema },
     ]),
   ],
-  controllers: [TeacherController],
-  providers: [TeacherService],
+  controllers: [TeacherController, DynamicProfileController],
+  providers: [TeacherService, DynamicConfigService],
   exports: [TeacherService],
 })
 export class TeacherModule {}

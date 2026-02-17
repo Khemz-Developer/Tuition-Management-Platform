@@ -6,8 +6,23 @@ import { TransformInterceptor } from './interceptors/transform.interceptor';
 import { getConnectionToken } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 
+console.log('=== Main.ts loaded - NODE_ENV:', process.env.NODE_ENV, '===');
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  try {
+    console.log('Bootstrap: Creating NestJS application...');
+    const app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log', 'debug', 'verbose'] });
+    console.log('Bootstrap: NestJS application created successfully');
 
   // Global prefix
   app.setGlobalPrefix('api');
@@ -74,5 +89,12 @@ async function bootstrap() {
   console.log(`\n🚀 Application is running on: http://localhost:${port}/api`);
   console.log(`🔍 Health check: http://localhost:${port}/api/health`);
   console.log(`🔍 Database check: http://localhost:${port}/api/health/db\n`);
+  } catch (error) {
+    console.error('❌ Failed to start application:', error);
+    process.exit(1);
+  }
 }
-bootstrap();
+bootstrap().catch(err => {
+  console.error('❌ Bootstrap error:', err);
+  process.exit(1);
+});
