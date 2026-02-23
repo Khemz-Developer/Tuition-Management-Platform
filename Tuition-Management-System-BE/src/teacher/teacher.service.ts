@@ -146,6 +146,7 @@ export class TeacherService {
         teacher.location = {} as any;
       }
       if (updateData.location.city !== undefined) teacher.location.city = updateData.location.city;
+      if (updateData.location.district !== undefined) teacher.location.district = updateData.location.district;
       if (updateData.location.state !== undefined) teacher.location.state = updateData.location.state;
       if (updateData.location.address !== undefined) teacher.location.address = updateData.location.address;
     }
@@ -169,6 +170,7 @@ export class TeacherService {
       if (updateData.pricing.hourlyRate !== undefined) teacher.pricing.hourlyRate = updateData.pricing.hourlyRate;
       if (updateData.pricing.monthlyFee !== undefined) teacher.pricing.monthlyFee = updateData.pricing.monthlyFee;
       if (updateData.pricing.groupClassPrice !== undefined) teacher.pricing.groupClassPrice = updateData.pricing.groupClassPrice;
+      if (updateData.pricing.priceByGrade !== undefined) teacher.pricing.priceByGrade = updateData.pricing.priceByGrade;
     }
 
     // Update social links
@@ -273,6 +275,10 @@ export class TeacherService {
         skip: query.skip || 0,
       },
     };
+  }
+
+  async getPublicConfig() {
+    return await this.dynamicConfigService.getPublicConfig();
   }
 
   // Dynamic Profile Methods

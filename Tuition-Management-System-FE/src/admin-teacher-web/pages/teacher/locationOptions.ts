@@ -1,0 +1,60 @@
+/** Sri Lanka cities (for dropdown) */
+export const CITIES = [
+  'Addalachchenai', 'Adikarigama', 'Agalawatta', 'Agarapathana', 'Ahangama', 'Ahungalla',
+  'Akkaraipattu', 'Akurana', 'Akuressa', 'Aladeniya', 'Alankerny', 'Alaveddy', 'Alawathugoda',
+  'Alawwa', 'Aluthgama', 'Aluthkade', 'Aluthwala', 'Ambalangoda', 'Ambalantota', 'Ambanpola',
+  'Ampara', 'Anamaduwa', 'Anawilundawa', 'Andankulam', 'Andiambalama', 'Angunakolapelessa',
+  'Ankumbura', 'Anuradhapura', 'Anuradhapura Bazzar', 'Anuradhapura New Town', 'Araiyampathy',
+  'Aralaganwila', 'Aranayake', 'Asiri Central', 'Atchuvely', 'Athurugiriya', 'Avissawella',
+  'Ayagama', 'Badalkumbura', 'Baddegama', 'Badulla', 'Badulla City', 'Baduraliya', 'Bakamuna',
+  'Balangoda', 'Ballaketuwa', 'Bambalapitiya', 'Bandaragama', 'Bandarawela', 'Barawakumbura',
+  'Batapola', 'Battaramulla', 'Batticaloa', 'Batticaloa Town', 'Batuwatte', 'Beliatta',
+  'Bentota', 'Beruwala', 'Bibile', 'Bingiriya', 'Biyagama', 'BOC Premier', 'Bogahakumbura',
+  'Bogaswewa', 'Bogawantalawa', 'Bokkawala', 'Bombuwela', 'Bopitiya', 'Boragas', 'Boralesgamuwa',
+  'Borella', 'Botanical Gardens Peradeniya', 'Bulathkohupitiya', 'Bulathsinhala', 'Buttala',
+  'Chankanai', 'Chavakachcheri', 'Cheddikulam', 'Chenkalady', 'Chilaw', 'China Bay', 'Chunnakam',
+  'City Office', 'Corporate', 'Corporate 2nd', 'Court Complex Kandy', 'Dalugama', 'Dambadeniya',
+  'Dambagalla', 'Dambulla', 'Dankotuwa', 'Danture', 'Daulagala', 'Meegoda', 'Dehiattakandiya',
+  'Dehiowita', 'Dehiwala', 'Deiyandara', 'Delft', 'Delgoda', 'Demanhandiya', 'Dematagoda',
+  'Deniyaya', 'Deraniyagala', 'Devinuwara', 'Dharga Town', 'Digana', 'Digana Village', 'Dikwella',
+  'Divulapitiya', 'Diyabeduma', 'Diyasenpura', 'Diyatalawa', 'Dodangoda', 'Doramadalawa',
+  'Dummalasuriya', 'Eastern University', 'Eheliyagoda', 'Elakanda', 'Electronic Banking Unit',
+  'Ella', 'Elpitiya', 'Embilipitiya', 'Embilipitiya City', 'Endana', 'Enderamulla', 'Eppawala',
+  'Eravur', 'Ethiliwewa', 'Ethimale', 'Ettampitiya', 'Fifth City', 'Fish Market Peliyagoda',
+  'Galagedera', 'Galaha', 'Galamuna', 'Galenbindunuwewa', 'Galewela', 'Galgamuwa', 'Galigamuwa',
+  'Galkiriyagama', 'Galle Bazaar', 'Galle Fort', 'Galnewa', 'Gampaha S/G', 'Gampola',
+  'Ganemulla', 'Geli Oya', 'General Hospital, A\'pura', 'Ginigathhena', 'Girandurukotte',
+  'Giriulla', 'Godakawela', 'Gonagaldeniya', 'Gonagolla', 'Gonapola', 'Gothatuwa', 'Grandpass',
+  'Habarana', 'Hakmana', 'Haldummulla', 'Hali ela', 'Hambantota', 'Hanwella', 'Haputale',
+  'Hasalaka', 'Hatharaliyadda', 'Hatton', 'Head Office', 'Hemmathagama', 'Hettipola', 'Hikkaduwa',
+  'Hingurakgoda', 'Hingurana', 'Hiripitiya', 'Homagama', 'Horana', 'Horowpathana', 'Hyde Park',
+  'Ibbagamuwa', 'Illavalai', 'Imaduwa', 'Independent Square', 'Ingiriya', 'International Division',
+  'Ipalogama', 'Irakkamam', 'Islamic Banking Unit', 'Ja Ela', 'Jaffna', 'Jayanthipura', 'Kadawatha',
+  'Kaduruwela', 'Kaduwela', 'Kahatagasdigiliya', 'Kahawatte', 'Kaithady', 'Kalawana', 'Kallady',
+  'Kallar', 'Kalmunai', 'Kalpitiya', 'Kalutara S/G', 'Kaluwanchikudy', 'Kalviyankadu', 'Kamburupitiya',
+  'Kandana', 'Kandapola', 'Kandy', 'Kandy 2nd', 'Kandy City Centre', 'Kandy Hospital', 'Kankesanthurai',
+  'Kantale Bazaar', 'Karadiyanaru', 'Karainagar', 'Karaitivu', 'Karanavai', 'Karapitiya', 'Karawanella',
+  'Karawita', 'Katana', 'Kataragama', 'Kattankudy', 'Katubedda', 'Katugastota', 'Katukurunda',
+  'Katunayake', 'Katuneriya', 'Katupotha', 'Katuwana', 'Katuwellegama',
+]
+
+/** Sri Lanka provinces */
+export const PROVINCES = [
+  'Western Province',
+  'Central Province',
+  'Southern Province',
+  'Northern Province',
+  'Eastern Province',
+  'North Western Province',
+  'North Central Province',
+  'Uva Province',
+  'Sabaragamuwa Province',
+]
+
+/** Sri Lanka districts */
+export const DISTRICTS = [
+  'Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale', 'Nuwara Eliya', 'Galle', 'Matara',
+  'Hambantota', 'Jaffna', 'Kilinochchi', 'Mannar', 'Mullaitivu', 'Vavuniya', 'Trincomalee',
+  'Batticaloa', 'Ampara', 'Kurunegala', 'Puttalam', 'Anuradhapura', 'Polonnaruwa', 'Badulla',
+  'Monaragala', 'Ratnapura', 'Kegalle',
+]

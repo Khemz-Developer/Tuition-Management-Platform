@@ -1,0 +1,3483 @@
+{
+  "$set": {
+    "cities": [
+      {
+        "code": "addalachchenai",
+        "name": "Addalachchenai",
+        "active": true,
+        "order": 1
+      },
+      {
+        "code": "adikarigama",
+        "name": "Adikarigama",
+        "active": true,
+        "order": 2
+      },
+      {
+        "code": "agalawatta",
+        "name": "Agalawatta",
+        "active": true,
+        "order": 3
+      },
+      {
+        "code": "agarapathana",
+        "name": "Agarapathana",
+        "active": true,
+        "order": 4
+      },
+      {
+        "code": "ahangama",
+        "name": "Ahangama",
+        "active": true,
+        "order": 5
+      },
+      {
+        "code": "ahungalla",
+        "name": "Ahungalla",
+        "active": true,
+        "order": 6
+      },
+      {
+        "code": "akkaraipattu",
+        "name": "Akkaraipattu",
+        "active": true,
+        "order": 7
+      },
+      {
+        "code": "akurana",
+        "name": "Akurana",
+        "active": true,
+        "order": 8
+      },
+      {
+        "code": "akuressa",
+        "name": "Akuressa",
+        "active": true,
+        "order": 9
+      },
+      {
+        "code": "aladeniya",
+        "name": "Aladeniya",
+        "active": true,
+        "order": 10
+      },
+      {
+        "code": "alankerny",
+        "name": "Alankerny",
+        "active": true,
+        "order": 11
+      },
+      {
+        "code": "alaveddy",
+        "name": "Alaveddy",
+        "active": true,
+        "order": 12
+      },
+      {
+        "code": "alawathugoda",
+        "name": "Alawathugoda",
+        "active": true,
+        "order": 13
+      },
+      {
+        "code": "alawwa",
+        "name": "Alawwa",
+        "active": true,
+        "order": 14
+      },
+      {
+        "code": "aluthgama",
+        "name": "Aluthgama",
+        "active": true,
+        "order": 15
+      },
+      {
+        "code": "aluthkade",
+        "name": "Aluthkade",
+        "active": true,
+        "order": 16
+      },
+      {
+        "code": "aluthwala",
+        "name": "Aluthwala",
+        "active": true,
+        "order": 17
+      },
+      {
+        "code": "ambalangoda",
+        "name": "Ambalangoda",
+        "active": true,
+        "order": 18
+      },
+      {
+        "code": "ambalantota",
+        "name": "Ambalantota",
+        "active": true,
+        "order": 19
+      },
+      {
+        "code": "ambanpola",
+        "name": "Ambanpola",
+        "active": true,
+        "order": 20
+      },
+      {
+        "code": "ampara",
+        "name": "Ampara",
+        "active": true,
+        "order": 21
+      },
+      {
+        "code": "anamaduwa",
+        "name": "Anamaduwa",
+        "active": true,
+        "order": 22
+      },
+      {
+        "code": "anawilundawa",
+        "name": "Anawilundawa",
+        "active": true,
+        "order": 23
+      },
+      {
+        "code": "andankulam",
+        "name": "Andankulam",
+        "active": true,
+        "order": 24
+      },
+      {
+        "code": "andiambalama",
+        "name": "Andiambalama",
+        "active": true,
+        "order": 25
+      },
+      {
+        "code": "angunakolapelessa",
+        "name": "Angunakolapelessa",
+        "active": true,
+        "order": 26
+      },
+      {
+        "code": "ankumbura",
+        "name": "Ankumbura",
+        "active": true,
+        "order": 27
+      },
+      {
+        "code": "anuradhapura",
+        "name": "Anuradhapura",
+        "active": true,
+        "order": 28
+      },
+      {
+        "code": "anuradhapurabazzar",
+        "name": "Anuradhapura Bazzar",
+        "active": true,
+        "order": 29
+      },
+      {
+        "code": "anuradhapuranewtown",
+        "name": "Anuradhapura New Town",
+        "active": true,
+        "order": 30
+      },
+      {
+        "code": "araiyampathy",
+        "name": "Araiyampathy",
+        "active": true,
+        "order": 31
+      },
+      {
+        "code": "aralaganwila",
+        "name": "Aralaganwila",
+        "active": true,
+        "order": 32
+      },
+      {
+        "code": "aranayake",
+        "name": "Aranayake",
+        "active": true,
+        "order": 33
+      },
+      {
+        "code": "asiricentral",
+        "name": "Asiri Central",
+        "active": true,
+        "order": 34
+      },
+      {
+        "code": "atchuvely",
+        "name": "Atchuvely",
+        "active": true,
+        "order": 35
+      },
+      {
+        "code": "athurugiriya",
+        "name": "Athurugiriya",
+        "active": true,
+        "order": 36
+      },
+      {
+        "code": "avissawella",
+        "name": "Avissawella",
+        "active": true,
+        "order": 37
+      },
+      {
+        "code": "ayagama",
+        "name": "Ayagama",
+        "active": true,
+        "order": 38
+      },
+      {
+        "code": "badalkumbura",
+        "name": "Badalkumbura",
+        "active": true,
+        "order": 39
+      },
+      {
+        "code": "baddegama",
+        "name": "Baddegama",
+        "active": true,
+        "order": 40
+      },
+      {
+        "code": "badulla",
+        "name": "Badulla",
+        "active": true,
+        "order": 41
+      },
+      {
+        "code": "badullacity",
+        "name": "Badulla City",
+        "active": true,
+        "order": 42
+      },
+      {
+        "code": "baduraliya",
+        "name": "Baduraliya",
+        "active": true,
+        "order": 43
+      },
+      {
+        "code": "bakamuna",
+        "name": "Bakamuna",
+        "active": true,
+        "order": 44
+      },
+      {
+        "code": "balangoda",
+        "name": "Balangoda",
+        "active": true,
+        "order": 45
+      },
+      {
+        "code": "ballaketuwa",
+        "name": "Ballaketuwa",
+        "active": true,
+        "order": 46
+      },
+      {
+        "code": "bambalapitiya",
+        "name": "Bambalapitiya",
+        "active": true,
+        "order": 47
+      },
+      {
+        "code": "bandaragama",
+        "name": "Bandaragama",
+        "active": true,
+        "order": 48
+      },
+      {
+        "code": "bandarawela",
+        "name": "Bandarawela",
+        "active": true,
+        "order": 49
+      },
+      {
+        "code": "barawakumbura",
+        "name": "Barawakumbura",
+        "active": true,
+        "order": 50
+      },
+      {
+        "code": "batapola",
+        "name": "Batapola",
+        "active": true,
+        "order": 51
+      },
+      {
+        "code": "battaramulla",
+        "name": "Battaramulla",
+        "active": true,
+        "order": 52
+      },
+      {
+        "code": "batticaloa",
+        "name": "Batticaloa",
+        "active": true,
+        "order": 53
+      },
+      {
+        "code": "batticaloatown",
+        "name": "Batticaloa Town",
+        "active": true,
+        "order": 54
+      },
+      {
+        "code": "batuwatte",
+        "name": "Batuwatte",
+        "active": true,
+        "order": 55
+      },
+      {
+        "code": "beliatta",
+        "name": "Beliatta",
+        "active": true,
+        "order": 56
+      },
+      {
+        "code": "bentota",
+        "name": "Bentota",
+        "active": true,
+        "order": 57
+      },
+      {
+        "code": "beruwala",
+        "name": "Beruwala",
+        "active": true,
+        "order": 58
+      },
+      {
+        "code": "bibile",
+        "name": "Bibile",
+        "active": true,
+        "order": 59
+      },
+      {
+        "code": "bingiriya",
+        "name": "Bingiriya",
+        "active": true,
+        "order": 60
+      },
+      {
+        "code": "biyagama",
+        "name": "Biyagama",
+        "active": true,
+        "order": 61
+      },
+      {
+        "code": "bocpremier",
+        "name": "BOC premier",
+        "active": true,
+        "order": 62
+      },
+      {
+        "code": "bogahakumbura",
+        "name": "Bogahakumbura",
+        "active": true,
+        "order": 63
+      },
+      {
+        "code": "bogaswewa",
+        "name": "Bogaswewa",
+        "active": true,
+        "order": 64
+      },
+      {
+        "code": "bogawantalawa",
+        "name": "Bogawantalawa",
+        "active": true,
+        "order": 65
+      },
+      {
+        "code": "bokkawala",
+        "name": "Bokkawala",
+        "active": true,
+        "order": 66
+      },
+      {
+        "code": "bombuwela",
+        "name": "Bombuwela",
+        "active": true,
+        "order": 67
+      },
+      {
+        "code": "bopitiya",
+        "name": "Bopitiya",
+        "active": true,
+        "order": 68
+      },
+      {
+        "code": "boragas",
+        "name": "Boragas",
+        "active": true,
+        "order": 69
+      },
+      {
+        "code": "boralesgamuwa",
+        "name": "Boralesgamuwa",
+        "active": true,
+        "order": 70
+      },
+      {
+        "code": "borella2nd",
+        "name": "Borella 2nd",
+        "active": true,
+        "order": 71
+      },
+      {
+        "code": "borellas/g",
+        "name": "Borella S/G",
+        "active": true,
+        "order": 72
+      },
+      {
+        "code": "botanicalgardensperadeniya",
+        "name": "Botanical Gardens Peradeniya",
+        "active": true,
+        "order": 73
+      },
+      {
+        "code": "bulathkohupitiya",
+        "name": "Bulathkohupitiya",
+        "active": true,
+        "order": 74
+      },
+      {
+        "code": "bulathsinhala",
+        "name": "Bulathsinhala",
+        "active": true,
+        "order": 75
+      },
+      {
+        "code": "buttala",
+        "name": "Buttala",
+        "active": true,
+        "order": 76
+      },
+      {
+        "code": "centralbusstand",
+        "name": "Central Bus Stand",
+        "active": true,
+        "order": 77
+      },
+      {
+        "code": "centralcamp",
+        "name": "Central Camp",
+        "active": true,
+        "order": 78
+      },
+      {
+        "code": "centraloffice",
+        "name": "Central Office",
+        "active": true,
+        "order": 79
+      },
+      {
+        "code": "centralsupermarket",
+        "name": "Central Super Market",
+        "active": true,
+        "order": 80
+      },
+      {
+        "code": "ceybankcreditcardcentre",
+        "name": "CEYBANK Credit card centre",
+        "active": true,
+        "order": 81
+      },
+      {
+        "code": "chankanai",
+        "name": "Chankanai",
+        "active": true,
+        "order": 82
+      },
+      {
+        "code": "chavakachcheri",
+        "name": "Chavakachcheri",
+        "active": true,
+        "order": 83
+      },
+      {
+        "code": "cheddikulam",
+        "name": "Cheddikulam",
+        "active": true,
+        "order": 84
+      },
+      {
+        "code": "chenkalady",
+        "name": "Chenkalady",
+        "active": true,
+        "order": 85
+      },
+      {
+        "code": "chilaw",
+        "name": "Chilaw",
+        "active": true,
+        "order": 86
+      },
+      {
+        "code": "chinabay",
+        "name": "China Bay",
+        "active": true,
+        "order": 87
+      },
+      {
+        "code": "chunnakam",
+        "name": "Chunnakam",
+        "active": true,
+        "order": 88
+      },
+      {
+        "code": "cityoffice",
+        "name": "City Office",
+        "active": true,
+        "order": 89
+      },
+      {
+        "code": "corporate",
+        "name": "Corporate",
+        "active": true,
+        "order": 90
+      },
+      {
+        "code": "corporate2nd",
+        "name": "Corporate 2nd",
+        "active": true,
+        "order": 91
+      },
+      {
+        "code": "courtcomplexkandy",
+        "name": "Court Complex Kandy",
+        "active": true,
+        "order": 92
+      },
+      {
+        "code": "dalugama",
+        "name": "Dalugama",
+        "active": true,
+        "order": 93
+      },
+      {
+        "code": "dambadeniya",
+        "name": "Dambadeniya",
+        "active": true,
+        "order": 94
+      },
+      {
+        "code": "dambagalla",
+        "name": "Dambagalla",
+        "active": true,
+        "order": 95
+      },
+      {
+        "code": "dambulla",
+        "name": "Dambulla",
+        "active": true,
+        "order": 96
+      },
+      {
+        "code": "dankotuwa",
+        "name": "Dankotuwa",
+        "active": true,
+        "order": 97
+      },
+      {
+        "code": "danture",
+        "name": "Danture",
+        "active": true,
+        "order": 98
+      },
+      {
+        "code": "daulagala",
+        "name": "Daulagala",
+        "active": true,
+        "order": 99
+      },
+      {
+        "code": "dedicatedeconomiccentremeegoda",
+        "name": "Dedicated Economic Centre – Meegoda",
+        "active": true,
+        "order": 100
+      },
+      {
+        "code": "dehiattakandiya",
+        "name": "Dehiattakandiya",
+        "active": true,
+        "order": 101
+      },
+      {
+        "code": "dehiowita",
+        "name": "Dehiowita",
+        "active": true,
+        "order": 102
+      },
+      {
+        "code": "dehiwala",
+        "name": "Dehiwala",
+        "active": true,
+        "order": 103
+      },
+      {
+        "code": "deiyandara",
+        "name": "Deiyandara",
+        "active": true,
+        "order": 104
+      },
+      {
+        "code": "delft",
+        "name": "Delft",
+        "active": true,
+        "order": 105
+      },
+      {
+        "code": "delgoda",
+        "name": "Delgoda",
+        "active": true,
+        "order": 106
+      },
+      {
+        "code": "demanhandiya",
+        "name": "Demanhandiya",
+        "active": true,
+        "order": 107
+      },
+      {
+        "code": "dematagoda",
+        "name": "Dematagoda",
+        "active": true,
+        "order": 108
+      },
+      {
+        "code": "deniyaya",
+        "name": "Deniyaya",
+        "active": true,
+        "order": 109
+      },
+      {
+        "code": "deraniyagala",
+        "name": "Deraniyagala",
+        "active": true,
+        "order": 110
+      },
+      {
+        "code": "devinuwara",
+        "name": "Devinuwara",
+        "active": true,
+        "order": 111
+      },
+      {
+        "code": "dhargatown",
+        "name": "Dharga Town",
+        "active": true,
+        "order": 112
+      },
+      {
+        "code": "digana",
+        "name": "Digana",
+        "active": true,
+        "order": 113
+      },
+      {
+        "code": "diganavillage",
+        "name": "Digana Village",
+        "active": true,
+        "order": 114
+      },
+      {
+        "code": "dikwella",
+        "name": "Dikwella",
+        "active": true,
+        "order": 115
+      },
+      {
+        "code": "divulapitiya",
+        "name": "Divulapitiya",
+        "active": true,
+        "order": 116
+      },
+      {
+        "code": "diyabeduma",
+        "name": "Diyabeduma",
+        "active": true,
+        "order": 117
+      },
+      {
+        "code": "diyasenpura",
+        "name": "Diyasenpura",
+        "active": true,
+        "order": 118
+      },
+      {
+        "code": "diyatalawa",
+        "name": "Diyatalawa",
+        "active": true,
+        "order": 119
+      },
+      {
+        "code": "dodangoda",
+        "name": "Dodangoda",
+        "active": true,
+        "order": 120
+      },
+      {
+        "code": "doramadalawa",
+        "name": "Doramadalawa",
+        "active": true,
+        "order": 121
+      },
+      {
+        "code": "dummalasuriya",
+        "name": "Dummalasuriya",
+        "active": true,
+        "order": 122
+      },
+      {
+        "code": "easternuniversity",
+        "name": "Eastern University",
+        "active": true,
+        "order": 123
+      },
+      {
+        "code": "eheliyagoda",
+        "name": "Eheliyagoda",
+        "active": true,
+        "order": 124
+      },
+      {
+        "code": "elakanda",
+        "name": "Elakanda",
+        "active": true,
+        "order": 125
+      },
+      {
+        "code": "electronicbankingunit",
+        "name": "Electronic Banking Unit",
+        "active": true,
+        "order": 126
+      },
+      {
+        "code": "ella",
+        "name": "Ella",
+        "active": true,
+        "order": 127
+      },
+      {
+        "code": "elpitiya",
+        "name": "Elpitiya",
+        "active": true,
+        "order": 128
+      },
+      {
+        "code": "embilipitiya",
+        "name": "Embilipitiya",
+        "active": true,
+        "order": 129
+      },
+      {
+        "code": "embilipitiyacity",
+        "name": "Embilipitiya City",
+        "active": true,
+        "order": 130
+      },
+      {
+        "code": "endana",
+        "name": "Endana",
+        "active": true,
+        "order": 131
+      },
+      {
+        "code": "enderamulla",
+        "name": "Enderamulla",
+        "active": true,
+        "order": 132
+      },
+      {
+        "code": "eppawala",
+        "name": "Eppawala",
+        "active": true,
+        "order": 133
+      },
+      {
+        "code": "eravur",
+        "name": "Eravur",
+        "active": true,
+        "order": 134
+      },
+      {
+        "code": "ethiliwewa",
+        "name": "Ethiliwewa",
+        "active": true,
+        "order": 135
+      },
+      {
+        "code": "ethimale",
+        "name": "Ethimale",
+        "active": true,
+        "order": 136
+      },
+      {
+        "code": "ettampitiya",
+        "name": "Ettampitiya",
+        "active": true,
+        "order": 137
+      },
+      {
+        "code": "fifthcity",
+        "name": "Fifth City",
+        "active": true,
+        "order": 138
+      },
+      {
+        "code": "fishmarketpeliyagoda",
+        "name": "Fish Market Peliyagoda",
+        "active": true,
+        "order": 139
+      },
+      {
+        "code": "galagedera",
+        "name": "Galagedera",
+        "active": true,
+        "order": 140
+      },
+      {
+        "code": "galaha",
+        "name": "Galaha",
+        "active": true,
+        "order": 141
+      },
+      {
+        "code": "galamuna",
+        "name": "Galamuna",
+        "active": true,
+        "order": 142
+      },
+      {
+        "code": "galenbindunuwewa",
+        "name": "Galenbindunuwewa",
+        "active": true,
+        "order": 143
+      },
+      {
+        "code": "galewela",
+        "name": "Galewela",
+        "active": true,
+        "order": 144
+      },
+      {
+        "code": "galgamuwa",
+        "name": "Galgamuwa",
+        "active": true,
+        "order": 145
+      },
+      {
+        "code": "galigamuwa",
+        "name": "Galigamuwa",
+        "active": true,
+        "order": 146
+      },
+      {
+        "code": "galkiriyagama",
+        "name": "Galkiriyagama",
+        "active": true,
+        "order": 147
+      },
+      {
+        "code": "gallebazaar",
+        "name": "Galle Bazaar",
+        "active": true,
+        "order": 148
+      },
+      {
+        "code": "gallefort",
+        "name": "Galle Fort",
+        "active": true,
+        "order": 149
+      },
+      {
+        "code": "galnewa",
+        "name": "Galnewa",
+        "active": true,
+        "order": 150
+      },
+      {
+        "code": "gampahas/g",
+        "name": "Gampaha S/G",
+        "active": true,
+        "order": 151
+      },
+      {
+        "code": "gampola",
+        "name": "Gampola",
+        "active": true,
+        "order": 152
+      },
+      {
+        "code": "gampolacity",
+        "name": "Gampola City",
+        "active": true,
+        "order": 153
+      },
+      {
+        "code": "ganemulla",
+        "name": "Ganemulla",
+        "active": true,
+        "order": 154
+      },
+      {
+        "code": "gelioya",
+        "name": "Geli Oya",
+        "active": true,
+        "order": 155
+      },
+      {
+        "code": "generalhospitalapura",
+        "name": "General Hospital, A' pura",
+        "active": true,
+        "order": 156
+      },
+      {
+        "code": "ginigathhena",
+        "name": "Ginigathhena",
+        "active": true,
+        "order": 157
+      },
+      {
+        "code": "girandurukotte",
+        "name": "Girandurukotte",
+        "active": true,
+        "order": 158
+      },
+      {
+        "code": "giriulla",
+        "name": "Giriulla",
+        "active": true,
+        "order": 159
+      },
+      {
+        "code": "godakawela",
+        "name": "Godakawela",
+        "active": true,
+        "order": 160
+      },
+      {
+        "code": "gonagaldeniya",
+        "name": "Gonagaldeniya",
+        "active": true,
+        "order": 161
+      },
+      {
+        "code": "gonagolla",
+        "name": "Gonagolla",
+        "active": true,
+        "order": 162
+      },
+      {
+        "code": "gonapola",
+        "name": "Gonapola",
+        "active": true,
+        "order": 163
+      },
+      {
+        "code": "gothatuwa",
+        "name": "Gothatuwa",
+        "active": true,
+        "order": 164
+      },
+      {
+        "code": "grandpass",
+        "name": "Grandpass",
+        "active": true,
+        "order": 165
+      },
+      {
+        "code": "habarana",
+        "name": "Habarana",
+        "active": true,
+        "order": 166
+      },
+      {
+        "code": "hakmana",
+        "name": "Hakmana",
+        "active": true,
+        "order": 167
+      },
+      {
+        "code": "haldummulla",
+        "name": "Haldummulla",
+        "active": true,
+        "order": 168
+      },
+      {
+        "code": "haliela",
+        "name": "Hali ela",
+        "active": true,
+        "order": 169
+      },
+      {
+        "code": "hambantota",
+        "name": "Hambantota",
+        "active": true,
+        "order": 170
+      },
+      {
+        "code": "hanwella",
+        "name": "Hanwella",
+        "active": true,
+        "order": 171
+      },
+      {
+        "code": "haputale",
+        "name": "Haputale",
+        "active": true,
+        "order": 172
+      },
+      {
+        "code": "hasalaka",
+        "name": "Hasalaka",
+        "active": true,
+        "order": 173
+      },
+      {
+        "code": "hatharaliyadda",
+        "name": "Hatharaliyadda",
+        "active": true,
+        "order": 174
+      },
+      {
+        "code": "hatton",
+        "name": "Hatton",
+        "active": true,
+        "order": 175
+      },
+      {
+        "code": "headoffice",
+        "name": "Head Office",
+        "active": true,
+        "order": 176
+      },
+      {
+        "code": "hemmathagama",
+        "name": "Hemmathagama",
+        "active": true,
+        "order": 177
+      },
+      {
+        "code": "hettipola",
+        "name": "Hettipola",
+        "active": true,
+        "order": 178
+      },
+      {
+        "code": "hikkaduwa",
+        "name": "Hikkaduwa",
+        "active": true,
+        "order": 179
+      },
+      {
+        "code": "hingurakgoda",
+        "name": "Hingurakgoda",
+        "active": true,
+        "order": 180
+      },
+      {
+        "code": "hingurana",
+        "name": "Hingurana",
+        "active": true,
+        "order": 181
+      },
+      {
+        "code": "hiripitiya",
+        "name": "Hiripitiya",
+        "active": true,
+        "order": 182
+      },
+      {
+        "code": "homagama",
+        "name": "Homagama",
+        "active": true,
+        "order": 183
+      },
+      {
+        "code": "horana",
+        "name": "Horana",
+        "active": true,
+        "order": 184
+      },
+      {
+        "code": "horowpathana",
+        "name": "Horowpathana",
+        "active": true,
+        "order": 185
+      },
+      {
+        "code": "hydepark",
+        "name": "Hyde Park",
+        "active": true,
+        "order": 186
+      },
+      {
+        "code": "ibbagamuwa",
+        "name": "Ibbagamuwa",
+        "active": true,
+        "order": 187
+      },
+      {
+        "code": "illavalai",
+        "name": "Illavalai",
+        "active": true,
+        "order": 188
+      },
+      {
+        "code": "imaduwa",
+        "name": "Imaduwa",
+        "active": true,
+        "order": 189
+      },
+      {
+        "code": "independentsquare",
+        "name": "Independent Square",
+        "active": true,
+        "order": 190
+      },
+      {
+        "code": "ingiriya",
+        "name": "Ingiriya",
+        "active": true,
+        "order": 191
+      },
+      {
+        "code": "internationaldivision",
+        "name": "International Division",
+        "active": true,
+        "order": 192
+      },
+      {
+        "code": "ipalogama",
+        "name": "Ipalogama",
+        "active": true,
+        "order": 193
+      },
+      {
+        "code": "irakkamam",
+        "name": "Irakkamam",
+        "active": true,
+        "order": 194
+      },
+      {
+        "code": "islamicbankingunit",
+        "name": "Islamic Banking Unit",
+        "active": true,
+        "order": 195
+      },
+      {
+        "code": "jaela",
+        "name": "Ja Ela",
+        "active": true,
+        "order": 196
+      },
+      {
+        "code": "jaffna",
+        "name": "Jaffna",
+        "active": true,
+        "order": 197
+      },
+      {
+        "code": "jaffna2ndbranch",
+        "name": "Jaffna 2nd Branch",
+        "active": true,
+        "order": 198
+      },
+      {
+        "code": "jaffnabusstand",
+        "name": "Jaffna Bus Stand",
+        "active": true,
+        "order": 199
+      },
+      {
+        "code": "jaffnamainstreet",
+        "name": "Jaffna Main Street",
+        "active": true,
+        "order": 200
+      },
+      {
+        "code": "jaffnauniversity",
+        "name": "Jaffna University",
+        "active": true,
+        "order": 201
+      },
+      {
+        "code": "jayanthipura",
+        "name": "Jayanthipura",
+        "active": true,
+        "order": 202
+      },
+      {
+        "code": "kadawatha",
+        "name": "Kadawatha",
+        "active": true,
+        "order": 203
+      },
+      {
+        "code": "kadawatha2ndcity",
+        "name": "Kadawatha 2nd City",
+        "active": true,
+        "order": 204
+      },
+      {
+        "code": "kaduruwela",
+        "name": "Kaduruwela",
+        "active": true,
+        "order": 205
+      },
+      {
+        "code": "kaduwela",
+        "name": "Kaduwela",
+        "active": true,
+        "order": 206
+      },
+      {
+        "code": "kahatagasdigiliya",
+        "name": "Kahatagasdigiliya",
+        "active": true,
+        "order": 207
+      },
+      {
+        "code": "kahawatte",
+        "name": "Kahawatte",
+        "active": true,
+        "order": 208
+      },
+      {
+        "code": "kaithady",
+        "name": "Kaithady",
+        "active": true,
+        "order": 209
+      },
+      {
+        "code": "kalawana",
+        "name": "Kalawana",
+        "active": true,
+        "order": 210
+      },
+      {
+        "code": "kallady",
+        "name": "Kallady",
+        "active": true,
+        "order": 211
+      },
+      {
+        "code": "kallar",
+        "name": "Kallar",
+        "active": true,
+        "order": 212
+      },
+      {
+        "code": "kalmunai",
+        "name": "Kalmunai",
+        "active": true,
+        "order": 213
+      },
+      {
+        "code": "kalpitiya",
+        "name": "Kalpitiya",
+        "active": true,
+        "order": 214
+      },
+      {
+        "code": "kalutaras/g",
+        "name": "Kalutara S/G",
+        "active": true,
+        "order": 215
+      },
+      {
+        "code": "kaluwanchikudy",
+        "name": "Kaluwanchikudy",
+        "active": true,
+        "order": 216
+      },
+      {
+        "code": "kalviyankadu",
+        "name": "Kalviyankadu",
+        "active": true,
+        "order": 217
+      },
+      {
+        "code": "kamburupitiya",
+        "name": "Kamburupitiya",
+        "active": true,
+        "order": 218
+      },
+      {
+        "code": "kandana",
+        "name": "Kandana",
+        "active": true,
+        "order": 219
+      },
+      {
+        "code": "kandapola",
+        "name": "Kandapola",
+        "active": true,
+        "order": 220
+      },
+      {
+        "code": "kandy",
+        "name": "Kandy",
+        "active": true,
+        "order": 221
+      },
+      {
+        "code": "kandy2nd",
+        "name": "Kandy 2nd",
+        "active": true,
+        "order": 222
+      },
+      {
+        "code": "kandycitycentre",
+        "name": "Kandy City Centre",
+        "active": true,
+        "order": 223
+      },
+      {
+        "code": "kandyhospital",
+        "name": "Kandy Hospital",
+        "active": true,
+        "order": 224
+      },
+      {
+        "code": "kankesanthurai",
+        "name": "Kankesanthurai",
+        "active": true,
+        "order": 225
+      },
+      {
+        "code": "kantalebazaar",
+        "name": "Kantale Bazaar",
+        "active": true,
+        "order": 226
+      },
+      {
+        "code": "karadiyanaru",
+        "name": "Karadiyanaru",
+        "active": true,
+        "order": 227
+      },
+      {
+        "code": "karainagar",
+        "name": "Karainagar",
+        "active": true,
+        "order": 228
+      },
+      {
+        "code": "karaitivu",
+        "name": "Karaitivu",
+        "active": true,
+        "order": 229
+      },
+      {
+        "code": "karanavai",
+        "name": "Karanavai",
+        "active": true,
+        "order": 230
+      },
+      {
+        "code": "karapitiya",
+        "name": "Karapitiya",
+        "active": true,
+        "order": 231
+      },
+      {
+        "code": "karawanella",
+        "name": "Karawanella",
+        "active": true,
+        "order": 232
+      },
+      {
+        "code": "karawita",
+        "name": "Karawita",
+        "active": true,
+        "order": 233
+      },
+      {
+        "code": "katana",
+        "name": "Katana",
+        "active": true,
+        "order": 234
+      },
+      {
+        "code": "kataragama",
+        "name": "Kataragama",
+        "active": true,
+        "order": 235
+      },
+      {
+        "code": "kattankudy",
+        "name": "Kattankudy",
+        "active": true,
+        "order": 236
+      },
+      {
+        "code": "katubedda",
+        "name": "Katubedda",
+        "active": true,
+        "order": 237
+      },
+      {
+        "code": "katugastota",
+        "name": "Katugastota",
+        "active": true,
+        "order": 238
+      },
+      {
+        "code": "katukurunda",
+        "name": "Katukurunda",
+        "active": true,
+        "order": 239
+      },
+      {
+        "code": "katunayakeipz",
+        "name": "Katunayake I.P.Z.",
+        "active": true,
+        "order": 240
+      },
+      {
+        "code": "katuneriya",
+        "name": "Katuneriya",
+        "active": true,
+        "order": 241
+      },
+      {
+        "code": "katupotha",
+        "name": "Katupotha",
+        "active": true,
+        "order": 242
+      },
+      {
+        "code": "katuwana",
+        "name": "Katuwana",
+        "active": true,
+        "order": 243
+      },
+      {
+        "code": "katuwellegamacourtauldsclothinglankapvtltd",
+        "name": "Katuwellegama Courtaulds Clothing Lanka (Pvt) Ltd",
+        "active": true,
+        "order": 244
+      },
+      {
+        "code": "kayts",
+        "name": "Kayts",
+        "active": true,
+        "order": 245
+      },
+      {
+        "code": "kebithigollawa",
+        "name": "Kebithigollawa",
+        "active": true,
+        "order": 246
+      },
+      {
+        "code": "kegalle",
+        "name": "Kegalle",
+        "active": true,
+        "order": 247
+      },
+      {
+        "code": "kegallebazaar",
+        "name": "Kegalle Bazaar",
+        "active": true,
+        "order": 248
+      },
+      {
+        "code": "kegallehospital",
+        "name": "Kegalle Hospital",
+        "active": true,
+        "order": 249
+      },
+      {
+        "code": "kekanadura",
+        "name": "Kekanadura",
+        "active": true,
+        "order": 250
+      },
+      {
+        "code": "kekirawa",
+        "name": "Kekirawa",
+        "active": true,
+        "order": 251
+      },
+      {
+        "code": "keppetipola",
+        "name": "Keppetipola",
+        "active": true,
+        "order": 252
+      },
+      {
+        "code": "kesbewa",
+        "name": "Kesbewa",
+        "active": true,
+        "order": 253
+      },
+      {
+        "code": "keselwatte",
+        "name": "Keselwatte",
+        "active": true,
+        "order": 254
+      },
+      {
+        "code": "kilinochchi",
+        "name": "Kilinochchi",
+        "active": true,
+        "order": 255
+      },
+      {
+        "code": "kinniya",
+        "name": "Kinniya",
+        "active": true,
+        "order": 256
+      },
+      {
+        "code": "kiran",
+        "name": "Kiran",
+        "active": true,
+        "order": 257
+      },
+      {
+        "code": "kiribathgoda",
+        "name": "Kiribathgoda",
+        "active": true,
+        "order": 258
+      },
+      {
+        "code": "kiriella",
+        "name": "Kiriella",
+        "active": true,
+        "order": 259
+      },
+      {
+        "code": "kirimetiyana",
+        "name": "Kirimetiyana",
+        "active": true,
+        "order": 260
+      },
+      {
+        "code": "kirindiwela",
+        "name": "Kirindiwela",
+        "active": true,
+        "order": 261
+      },
+      {
+        "code": "kirulapana",
+        "name": "Kirulapana",
+        "active": true,
+        "order": 262
+      },
+      {
+        "code": "kitulgala",
+        "name": "Kitulgala",
+        "active": true,
+        "order": 263
+      },
+      {
+        "code": "kobeigane",
+        "name": "Kobeigane",
+        "active": true,
+        "order": 264
+      },
+      {
+        "code": "kochchikade",
+        "name": "Kochchikade",
+        "active": true,
+        "order": 265
+      },
+      {
+        "code": "kodikamam",
+        "name": "Kodikamam",
+        "active": true,
+        "order": 266
+      },
+      {
+        "code": "koggalaepz",
+        "name": "Koggala E.P.Z",
+        "active": true,
+        "order": 267
+      },
+      {
+        "code": "kokkadicholai",
+        "name": "Kokkadicholai",
+        "active": true,
+        "order": 268
+      },
+      {
+        "code": "kokuvil",
+        "name": "Kokuvil",
+        "active": true,
+        "order": 269
+      },
+      {
+        "code": "kollupitiya",
+        "name": "Kollupitiya",
+        "active": true,
+        "order": 270
+      },
+      {
+        "code": "kollupitiya2nd",
+        "name": "Kollupitiya 2nd",
+        "active": true,
+        "order": 271
+      },
+      {
+        "code": "kolonna",
+        "name": "Kolonna",
+        "active": true,
+        "order": 272
+      },
+      {
+        "code": "kolonnawa",
+        "name": "Kolonnawa",
+        "active": true,
+        "order": 273
+      },
+      {
+        "code": "kopay",
+        "name": "Kopay",
+        "active": true,
+        "order": 274
+      },
+      {
+        "code": "koslanda",
+        "name": "Koslanda",
+        "active": true,
+        "order": 275
+      },
+      {
+        "code": "kosmodera",
+        "name": "Kosmodera",
+        "active": true,
+        "order": 276
+      },
+      {
+        "code": "kotagala",
+        "name": "Kotagala",
+        "active": true,
+        "order": 277
+      },
+      {
+        "code": "kotahena",
+        "name": "Kotahena",
+        "active": true,
+        "order": 278
+      },
+      {
+        "code": "kothalawaladefenceuniversity",
+        "name": "Kothalawala Defence University",
+        "active": true,
+        "order": 279
+      },
+      {
+        "code": "kotiyakumbura",
+        "name": "Kotiyakumbura",
+        "active": true,
+        "order": 280
+      },
+      {
+        "code": "kottawa",
+        "name": "Kottawa",
+        "active": true,
+        "order": 281
+      },
+      {
+        "code": "kudawella",
+        "name": "Kudawella",
+        "active": true,
+        "order": 282
+      },
+      {
+        "code": "kuliyapitiya",
+        "name": "Kuliyapitiya",
+        "active": true,
+        "order": 283
+      },
+      {
+        "code": "kumbukgete",
+        "name": "Kumbukgete",
+        "active": true,
+        "order": 284
+      },
+      {
+        "code": "kurunduwatte",
+        "name": "Kurunduwatte",
+        "active": true,
+        "order": 285
+      },
+      {
+        "code": "kurunegala",
+        "name": "Kurunegala",
+        "active": true,
+        "order": 286
+      },
+      {
+        "code": "kurunegalabazaar",
+        "name": "Kurunegala Bazaar",
+        "active": true,
+        "order": 287
+      },
+      {
+        "code": "kuruwita",
+        "name": "Kuruwita",
+        "active": true,
+        "order": 288
+      },
+      {
+        "code": "lakehouse",
+        "name": "Lake House",
+        "active": true,
+        "order": 289
+      },
+      {
+        "code": "lakeview",
+        "name": "Lake View",
+        "active": true,
+        "order": 290
+      },
+      {
+        "code": "lankahospital",
+        "name": "Lanka Hospital",
+        "active": true,
+        "order": 291
+      },
+      {
+        "code": "lunugala",
+        "name": "Lunugala",
+        "active": true,
+        "order": 292
+      },
+      {
+        "code": "lunugamvehera",
+        "name": "Lunugamvehera",
+        "active": true,
+        "order": 293
+      },
+      {
+        "code": "lunuwatte",
+        "name": "Lunuwatte",
+        "active": true,
+        "order": 294
+      },
+      {
+        "code": "madampe",
+        "name": "Madampe",
+        "active": true,
+        "order": 295
+      },
+      {
+        "code": "madatugama",
+        "name": "Madatugama",
+        "active": true,
+        "order": 296
+      },
+      {
+        "code": "madawakkulama",
+        "name": "Madawakkulama",
+        "active": true,
+        "order": 297
+      },
+      {
+        "code": "madawala",
+        "name": "Madawala",
+        "active": true,
+        "order": 298
+      },
+      {
+        "code": "madhu",
+        "name": "Madhu",
+        "active": true,
+        "order": 299
+      },
+      {
+        "code": "madurankuliya",
+        "name": "Madurankuliya",
+        "active": true,
+        "order": 300
+      },
+      {
+        "code": "mahaedanda",
+        "name": "Maha-Edanda",
+        "active": true,
+        "order": 301
+      },
+      {
+        "code": "mahaoya",
+        "name": "Mahaoya",
+        "active": true,
+        "order": 302
+      },
+      {
+        "code": "maharagama",
+        "name": "Maharagama",
+        "active": true,
+        "order": 303
+      },
+      {
+        "code": "mahawewa",
+        "name": "Mahawewa",
+        "active": true,
+        "order": 304
+      },
+      {
+        "code": "mahiyangana",
+        "name": "Mahiyangana",
+        "active": true,
+        "order": 305
+      },
+      {
+        "code": "maho",
+        "name": "Maho",
+        "active": true,
+        "order": 306
+      },
+      {
+        "code": "mainstreet",
+        "name": "Main Street",
+        "active": true,
+        "order": 307
+      },
+      {
+        "code": "makandura",
+        "name": "Makandura",
+        "active": true,
+        "order": 308
+      },
+      {
+        "code": "makanduramatara",
+        "name": "Makandura – Matara",
+        "active": true,
+        "order": 309
+      },
+      {
+        "code": "makola",
+        "name": "Makola",
+        "active": true,
+        "order": 310
+      },
+      {
+        "code": "malabe",
+        "name": "Malabe",
+        "active": true,
+        "order": 311
+      },
+      {
+        "code": "malimbada",
+        "name": "Malimbada",
+        "active": true,
+        "order": 312
+      },
+      {
+        "code": "malkaduwawa",
+        "name": "Malkaduwawa",
+        "active": true,
+        "order": 313
+      },
+      {
+        "code": "mallavi",
+        "name": "Mallavi",
+        "active": true,
+        "order": 314
+      },
+      {
+        "code": "malwatte",
+        "name": "Malwatte",
+        "active": true,
+        "order": 315
+      },
+      {
+        "code": "mamangama",
+        "name": "Mamangama",
+        "active": true,
+        "order": 316
+      },
+      {
+        "code": "manipay",
+        "name": "Manipay",
+        "active": true,
+        "order": 317
+      },
+      {
+        "code": "mankulam",
+        "name": "Mankulam",
+        "active": true,
+        "order": 318
+      },
+      {
+        "code": "mannar",
+        "name": "Mannar",
+        "active": true,
+        "order": 319
+      },
+      {
+        "code": "manthikai",
+        "name": "Manthikai",
+        "active": true,
+        "order": 320
+      },
+      {
+        "code": "maradana",
+        "name": "Maradana",
+        "active": true,
+        "order": 321
+      },
+      {
+        "code": "marassana",
+        "name": "Marassana",
+        "active": true,
+        "order": 322
+      },
+      {
+        "code": "marawila",
+        "name": "Marawila",
+        "active": true,
+        "order": 323
+      },
+      {
+        "code": "maruthamunai",
+        "name": "Maruthamunai",
+        "active": true,
+        "order": 324
+      },
+      {
+        "code": "maruthankerny",
+        "name": "Maruthankerny",
+        "active": true,
+        "order": 325
+      },
+      {
+        "code": "maskeliya",
+        "name": "Maskeliya",
+        "active": true,
+        "order": 326
+      },
+      {
+        "code": "matale",
+        "name": "Matale",
+        "active": true,
+        "order": 327
+      },
+      {
+        "code": "matara",
+        "name": "Matara",
+        "active": true,
+        "order": 328
+      },
+      {
+        "code": "mataracity",
+        "name": "Matara City",
+        "active": true,
+        "order": 329
+      },
+      {
+        "code": "mattalaairport",
+        "name": "Mattala Airport",
+        "active": true,
+        "order": 330
+      },
+      {
+        "code": "mattegoda",
+        "name": "Mattegoda",
+        "active": true,
+        "order": 331
+      },
+      {
+        "code": "matugama",
+        "name": "Matugama",
+        "active": true,
+        "order": 332
+      },
+      {
+        "code": "mawanella",
+        "name": "Mawanella",
+        "active": true,
+        "order": 333
+      },
+      {
+        "code": "mawathagama",
+        "name": "Mawathagama",
+        "active": true,
+        "order": 334
+      },
+      {
+        "code": "medagama",
+        "name": "Medagama",
+        "active": true,
+        "order": 335
+      },
+      {
+        "code": "medawachchiya",
+        "name": "Medawachchiya",
+        "active": true,
+        "order": 336
+      },
+      {
+        "code": "medawala",
+        "name": "Medawala",
+        "active": true,
+        "order": 337
+      },
+      {
+        "code": "medirigiriya",
+        "name": "Medirigiriya",
+        "active": true,
+        "order": 338
+      },
+      {
+        "code": "meegahakiwula",
+        "name": "Meegahakiwula",
+        "active": true,
+        "order": 339
+      },
+      {
+        "code": "meegalewa",
+        "name": "Meegalewa",
+        "active": true,
+        "order": 340
+      },
+      {
+        "code": "meepilimana",
+        "name": "Meepilimana",
+        "active": true,
+        "order": 341
+      },
+      {
+        "code": "melsiripura",
+        "name": "Melsiripura",
+        "active": true,
+        "order": 342
+      },
+      {
+        "code": "menikhinna",
+        "name": "Menikhinna",
+        "active": true,
+        "order": 343
+      },
+      {
+        "code": "metropolitan",
+        "name": "Metropolitan",
+        "active": true,
+        "order": 344
+      },
+      {
+        "code": "middeniya",
+        "name": "Middeniya",
+        "active": true,
+        "order": 345
+      },
+      {
+        "code": "mihintale",
+        "name": "Mihintale",
+        "active": true,
+        "order": 346
+      },
+      {
+        "code": "milagiriya",
+        "name": "Milagiriya",
+        "active": true,
+        "order": 347
+      },
+      {
+        "code": "minneriya",
+        "name": "Minneriya",
+        "active": true,
+        "order": 348
+      },
+      {
+        "code": "minuwangoda",
+        "name": "Minuwangoda",
+        "active": true,
+        "order": 349
+      },
+      {
+        "code": "mirigama",
+        "name": "Mirigama",
+        "active": true,
+        "order": 350
+      },
+      {
+        "code": "mollipothana",
+        "name": "Mollipothana",
+        "active": true,
+        "order": 351
+      },
+      {
+        "code": "monaragala",
+        "name": "Monaragala",
+        "active": true,
+        "order": 352
+      },
+      {
+        "code": "moneragalatown",
+        "name": "Moneragala Town",
+        "active": true,
+        "order": 353
+      },
+      {
+        "code": "moratumulla",
+        "name": "Moratumulla",
+        "active": true,
+        "order": 354
+      },
+      {
+        "code": "moratuwa",
+        "name": "Moratuwa",
+        "active": true,
+        "order": 355
+      },
+      {
+        "code": "morawaka",
+        "name": "Morawaka",
+        "active": true,
+        "order": 356
+      },
+      {
+        "code": "morawewa",
+        "name": "Morawewa",
+        "active": true,
+        "order": 357
+      },
+      {
+        "code": "morontota",
+        "name": "Morontota",
+        "active": true,
+        "order": 358
+      },
+      {
+        "code": "mountlavinia",
+        "name": "Mount Lavinia",
+        "active": true,
+        "order": 359
+      },
+      {
+        "code": "mulankavil",
+        "name": "Mulankavil",
+        "active": true,
+        "order": 360
+      },
+      {
+        "code": "mullativu",
+        "name": "Mullativu",
+        "active": true,
+        "order": 361
+      },
+      {
+        "code": "mulleriyawanewtown",
+        "name": "Mulleriyawa New Town",
+        "active": true,
+        "order": 362
+      },
+      {
+        "code": "mulliyawalai",
+        "name": "Mulliyawalai",
+        "active": true,
+        "order": 363
+      },
+      {
+        "code": "murungan",
+        "name": "Murungan",
+        "active": true,
+        "order": 364
+      },
+      {
+        "code": "muttur",
+        "name": "Muttur",
+        "active": true,
+        "order": 365
+      },
+      {
+        "code": "nagoda",
+        "name": "Nagoda",
+        "active": true,
+        "order": 366
+      },
+      {
+        "code": "nainativu",
+        "name": "Nainativu",
+        "active": true,
+        "order": 367
+      },
+      {
+        "code": "naiwala",
+        "name": "Naiwala",
+        "active": true,
+        "order": 368
+      },
+      {
+        "code": "nallur",
+        "name": "Nallur",
+        "active": true,
+        "order": 369
+      },
+      {
+        "code": "nanatan",
+        "name": "Nanatan",
+        "active": true,
+        "order": 370
+      },
+      {
+        "code": "narahenpita",
+        "name": "Narahenpita",
+        "active": true,
+        "order": 371
+      },
+      {
+        "code": "narammala",
+        "name": "Narammala",
+        "active": true,
+        "order": 372
+      },
+      {
+        "code": "nationalinstituteofeducation",
+        "name": "National Institute Of Education",
+        "active": true,
+        "order": 373
+      },
+      {
+        "code": "nattandiya",
+        "name": "Nattandiya",
+        "active": true,
+        "order": 374
+      },
+      {
+        "code": "naula",
+        "name": "Naula",
+        "active": true,
+        "order": 375
+      },
+      {
+        "code": "navithanvely",
+        "name": "Navithanvely",
+        "active": true,
+        "order": 376
+      },
+      {
+        "code": "nawalapitiya",
+        "name": "Nawalapitiya",
+        "active": true,
+        "order": 377
+      },
+      {
+        "code": "nedunkerny",
+        "name": "Nedunkerny",
+        "active": true,
+        "order": 378
+      },
+      {
+        "code": "negombo",
+        "name": "Negombo",
+        "active": true,
+        "order": 379
+      },
+      {
+        "code": "negombobazzar",
+        "name": "Negombo Bazzar",
+        "active": true,
+        "order": 380
+      },
+      {
+        "code": "nelliady",
+        "name": "Nelliady",
+        "active": true,
+        "order": 381
+      },
+      {
+        "code": "nelundeniya",
+        "name": "Nelundeniya",
+        "active": true,
+        "order": 382
+      },
+      {
+        "code": "neluwa",
+        "name": "Neluwa",
+        "active": true,
+        "order": 383
+      },
+      {
+        "code": "nikaweratiya",
+        "name": "Nikaweratiya",
+        "active": true,
+        "order": 384
+      },
+      {
+        "code": "nilavely",
+        "name": "Nilavely",
+        "active": true,
+        "order": 385
+      },
+      {
+        "code": "nintavur",
+        "name": "Nintavur",
+        "active": true,
+        "order": 386
+      },
+      {
+        "code": "nittambuwa",
+        "name": "Nittambuwa",
+        "active": true,
+        "order": 387
+      },
+      {
+        "code": "nivitigala",
+        "name": "Nivitigala",
+        "active": true,
+        "order": 388
+      },
+      {
+        "code": "nochchiyagama",
+        "name": "Nochchiyagama",
+        "active": true,
+        "order": 389
+      },
+      {
+        "code": "norchcholei",
+        "name": "Norchcholei",
+        "active": true,
+        "order": 390
+      },
+      {
+        "code": "nugegodasupergrade",
+        "name": "Nugegoda Supergrade",
+        "active": true,
+        "order": 391
+      },
+      {
+        "code": "nuwaraeliya",
+        "name": "Nuwara Eliya",
+        "active": true,
+        "order": 392
+      },
+      {
+        "code": "oddamavady",
+        "name": "Oddamavady",
+        "active": true,
+        "order": 393
+      },
+      {
+        "code": "oddusudan",
+        "name": "Oddusudan",
+        "active": true,
+        "order": 394
+      },
+      {
+        "code": "okkampitiya",
+        "name": "Okkampitiya",
+        "active": true,
+        "order": 395
+      },
+      {
+        "code": "oluwil",
+        "name": "Oluwil",
+        "active": true,
+        "order": 396
+      },
+      {
+        "code": "omanthai",
+        "name": "Omanthai",
+        "active": true,
+        "order": 397
+      },
+      {
+        "code": "padaviparakramapura",
+        "name": "Padavi Parakramapura",
+        "active": true,
+        "order": 398
+      },
+      {
+        "code": "padaviya",
+        "name": "Padaviya",
+        "active": true,
+        "order": 399
+      },
+      {
+        "code": "padiyapelella",
+        "name": "Padiyapelella",
+        "active": true,
+        "order": 400
+      },
+      {
+        "code": "padiyatalawa",
+        "name": "Padiyatalawa",
+        "active": true,
+        "order": 401
+      },
+      {
+        "code": "padukka",
+        "name": "Padukka",
+        "active": true,
+        "order": 402
+      },
+      {
+        "code": "palapathwela",
+        "name": "Palapathwela",
+        "active": true,
+        "order": 403
+      },
+      {
+        "code": "palaviya",
+        "name": "Palaviya",
+        "active": true,
+        "order": 404
+      },
+      {
+        "code": "pallai",
+        "name": "Pallai",
+        "active": true,
+        "order": 405
+      },
+      {
+        "code": "pallama",
+        "name": "Pallama",
+        "active": true,
+        "order": 406
+      },
+      {
+        "code": "pallebedda",
+        "name": "Pallebedda",
+        "active": true,
+        "order": 407
+      },
+      {
+        "code": "pallekelle",
+        "name": "Pallekelle",
+        "active": true,
+        "order": 408
+      },
+      {
+        "code": "pallepola",
+        "name": "Pallepola",
+        "active": true,
+        "order": 409
+      },
+      {
+        "code": "palmuddai",
+        "name": "Palmuddai",
+        "active": true,
+        "order": 410
+      },
+      {
+        "code": "palugamam",
+        "name": "Palugamam",
+        "active": true,
+        "order": 411
+      },
+      {
+        "code": "panadura",
+        "name": "Panadura",
+        "active": true,
+        "order": 412
+      },
+      {
+        "code": "panadurabazaar",
+        "name": "Panadura Bazaar",
+        "active": true,
+        "order": 413
+      },
+      {
+        "code": "pannala",
+        "name": "Pannala",
+        "active": true,
+        "order": 414
+      },
+      {
+        "code": "paragahadeniya",
+        "name": "Paragahadeniya",
+        "active": true,
+        "order": 415
+      },
+      {
+        "code": "paranthan",
+        "name": "Paranthan",
+        "active": true,
+        "order": 416
+      },
+      {
+        "code": "parliamentarycomplex",
+        "name": "Parliamentary Complex",
+        "active": true,
+        "order": 417
+      },
+      {
+        "code": "pasgoda",
+        "name": "Pasgoda",
+        "active": true,
+        "order": 418
+      },
+      {
+        "code": "passara",
+        "name": "Passara",
+        "active": true,
+        "order": 419
+      },
+      {
+        "code": "pelawatta",
+        "name": "Pelawatta",
+        "active": true,
+        "order": 420
+      },
+      {
+        "code": "pelawattecitykalutara",
+        "name": "Pelawatte City Kalutara",
+        "active": true,
+        "order": 421
+      },
+      {
+        "code": "peliyagoda",
+        "name": "Peliyagoda",
+        "active": true,
+        "order": 422
+      },
+      {
+        "code": "pelmadulla",
+        "name": "Pelmadulla",
+        "active": true,
+        "order": 423
+      },
+      {
+        "code": "pemaduwa",
+        "name": "Pemaduwa",
+        "active": true,
+        "order": 424
+      },
+      {
+        "code": "peradeniya",
+        "name": "Peradeniya",
+        "active": true,
+        "order": 425
+      },
+      {
+        "code": "personal",
+        "name": "Personal",
+        "active": true,
+        "order": 426
+      },
+      {
+        "code": "pesalai",
+        "name": "Pesalai",
+        "active": true,
+        "order": 427
+      },
+      {
+        "code": "pettah",
+        "name": "Pettah",
+        "active": true,
+        "order": 428
+      },
+      {
+        "code": "pilimatalawa",
+        "name": "Pilimatalawa",
+        "active": true,
+        "order": 429
+      },
+      {
+        "code": "piliyandala",
+        "name": "Piliyandala",
+        "active": true,
+        "order": 430
+      },
+      {
+        "code": "pinnawala",
+        "name": "Pinnawala",
+        "active": true,
+        "order": 431
+      },
+      {
+        "code": "pitabeddara",
+        "name": "Pitabeddara",
+        "active": true,
+        "order": 432
+      },
+      {
+        "code": "pitakotte",
+        "name": "Pitakotte",
+        "active": true,
+        "order": 433
+      },
+      {
+        "code": "pitigala",
+        "name": "Pitigala",
+        "active": true,
+        "order": 434
+      },
+      {
+        "code": "pointpedro",
+        "name": "Point Pedro",
+        "active": true,
+        "order": 435
+      },
+      {
+        "code": "polgahawela",
+        "name": "Polgahawela",
+        "active": true,
+        "order": 436
+      },
+      {
+        "code": "polonnaruwanewtown",
+        "name": "Polonnaruwa New Town",
+        "active": true,
+        "order": 437
+      },
+      {
+        "code": "polpithigama",
+        "name": "Polpithigama",
+        "active": true,
+        "order": 438
+      },
+      {
+        "code": "polwatte",
+        "name": "Polwatte",
+        "active": true,
+        "order": 439
+      },
+      {
+        "code": "poonagary",
+        "name": "Poonagary",
+        "active": true,
+        "order": 440
+      },
+      {
+        "code": "poovarasankulam",
+        "name": "Poovarasankulam",
+        "active": true,
+        "order": 441
+      },
+      {
+        "code": "pothuhera",
+        "name": "Pothuhera",
+        "active": true,
+        "order": 442
+      },
+      {
+        "code": "potuvil",
+        "name": "Potuvil",
+        "active": true,
+        "order": 443
+      },
+      {
+        "code": "primarydealerunit",
+        "name": "Primary Dealer Unit",
+        "active": true,
+        "order": 444
+      },
+      {
+        "code": "provincialcouncilcomplexpallakelle",
+        "name": "Provincial Council Complex, Pallakelle",
+        "active": true,
+        "order": 445
+      },
+      {
+        "code": "pugoda",
+        "name": "Pugoda",
+        "active": true,
+        "order": 446
+      },
+      {
+        "code": "pujapitiya",
+        "name": "Pujapitiya",
+        "active": true,
+        "order": 447
+      },
+      {
+        "code": "pundaluoya",
+        "name": "Pundaluoya",
+        "active": true,
+        "order": 448
+      },
+      {
+        "code": "punnalaikadduvan",
+        "name": "Punnalaikadduvan",
+        "active": true,
+        "order": 449
+      },
+      {
+        "code": "pussellawa",
+        "name": "Pussellawa",
+        "active": true,
+        "order": 450
+      },
+      {
+        "code": "puthukudieruppu",
+        "name": "Puthukudieruppu",
+        "active": true,
+        "order": 451
+      },
+      {
+        "code": "puthukulam",
+        "name": "Puthukulam",
+        "active": true,
+        "order": 452
+      },
+      {
+        "code": "puttalam",
+        "name": "Puttalam",
+        "active": true,
+        "order": 453
+      },
+      {
+        "code": "raddolugama",
+        "name": "Raddolugama",
+        "active": true,
+        "order": 454
+      },
+      {
+        "code": "ragala",
+        "name": "Ragala",
+        "active": true,
+        "order": 455
+      },
+      {
+        "code": "ragama",
+        "name": "Ragama",
+        "active": true,
+        "order": 456
+      },
+      {
+        "code": "rajagiriya",
+        "name": "Rajagiriya",
+        "active": true,
+        "order": 457
+      },
+      {
+        "code": "rajanganaya",
+        "name": "Rajanganaya",
+        "active": true,
+        "order": 458
+      },
+      {
+        "code": "rajinajunction",
+        "name": "Rajina Junction",
+        "active": true,
+        "order": 459
+      },
+      {
+        "code": "rakwana",
+        "name": "Rakwana",
+        "active": true,
+        "order": 460
+      },
+      {
+        "code": "rambewa",
+        "name": "Rambewa",
+        "active": true,
+        "order": 461
+      },
+      {
+        "code": "rambukkana",
+        "name": "Rambukkana",
+        "active": true,
+        "order": 462
+      },
+      {
+        "code": "ranajayapura",
+        "name": "Ranajayapura",
+        "active": true,
+        "order": 463
+      },
+      {
+        "code": "ranna",
+        "name": "Ranna",
+        "active": true,
+        "order": 464
+      },
+      {
+        "code": "rathgama",
+        "name": "Rathgama",
+        "active": true,
+        "order": 465
+      },
+      {
+        "code": "ratmalana",
+        "name": "Ratmalana",
+        "active": true,
+        "order": 466
+      },
+      {
+        "code": "ratnapura",
+        "name": "Ratnapura",
+        "active": true,
+        "order": 467
+      },
+      {
+        "code": "ratnapurabazaar",
+        "name": "Ratnapura Bazaar",
+        "active": true,
+        "order": 468
+      },
+      {
+        "code": "ratnapurahospital",
+        "name": "Ratnapura Hospital",
+        "active": true,
+        "order": 469
+      },
+      {
+        "code": "rattota",
+        "name": "Rattota",
+        "active": true,
+        "order": 470
+      },
+      {
+        "code": "regentstreet",
+        "name": "Regent Street",
+        "active": true,
+        "order": 471
+      },
+      {
+        "code": "ridigama",
+        "name": "Ridigama",
+        "active": true,
+        "order": 472
+      },
+      {
+        "code": "rikillagaskada",
+        "name": "Rikillagaskada",
+        "active": true,
+        "order": 473
+      },
+      {
+        "code": "ruhunucampus",
+        "name": "Ruhunu Campus",
+        "active": true,
+        "order": 474
+      },
+      {
+        "code": "ruwanwella",
+        "name": "Ruwanwella",
+        "active": true,
+        "order": 475
+      },
+      {
+        "code": "sabaragamuwaprovincialcouncil",
+        "name": "Sabaragamuwa Provincial Council",
+        "active": true,
+        "order": 476
+      },
+      {
+        "code": "sabaragamuwauniversity",
+        "name": "Sabaragamuwa University",
+        "active": true,
+        "order": 477
+      },
+      {
+        "code": "sainthamarathu",
+        "name": "Sainthamarathu",
+        "active": true,
+        "order": 478
+      },
+      {
+        "code": "saliyawewa",
+        "name": "Saliyawewa",
+        "active": true,
+        "order": 479
+      },
+      {
+        "code": "samanthurai",
+        "name": "Samanthurai",
+        "active": true,
+        "order": 480
+      },
+      {
+        "code": "savalkaddu",
+        "name": "Savalkaddu",
+        "active": true,
+        "order": 481
+      },
+      {
+        "code": "seeduwa",
+        "name": "Seeduwa",
+        "active": true,
+        "order": 482
+      },
+      {
+        "code": "seethawakapura",
+        "name": "Seethawakapura",
+        "active": true,
+        "order": 483
+      },
+      {
+        "code": "serunuwara",
+        "name": "Serunuwara",
+        "active": true,
+        "order": 484
+      },
+      {
+        "code": "sevanapitiya",
+        "name": "Sevanapitiya",
+        "active": true,
+        "order": 485
+      },
+      {
+        "code": "sewagama",
+        "name": "Sewagama",
+        "active": true,
+        "order": 486
+      },
+      {
+        "code": "sigiriya",
+        "name": "Sigiriya",
+        "active": true,
+        "order": 487
+      },
+      {
+        "code": "sirupiddy",
+        "name": "Sirupiddy",
+        "active": true,
+        "order": 488
+      },
+      {
+        "code": "siyambalanduwa",
+        "name": "Siyambalanduwa",
+        "active": true,
+        "order": 489
+      },
+      {
+        "code": "srijayawardenapurahospital",
+        "name": "Sri Jayawardenapura Hospital",
+        "active": true,
+        "order": 490
+      },
+      {
+        "code": "suriyawewa",
+        "name": "Suriyawewa",
+        "active": true,
+        "order": 491
+      },
+      {
+        "code": "talatuoya",
+        "name": "Talatuoya",
+        "active": true,
+        "order": 492
+      },
+      {
+        "code": "talawakelle",
+        "name": "Talawakelle",
+        "active": true,
+        "order": 493
+      },
+      {
+        "code": "talgaswela",
+        "name": "Talgaswela",
+        "active": true,
+        "order": 494
+      },
+      {
+        "code": "tambuttegama",
+        "name": "Tambuttegama",
+        "active": true,
+        "order": 495
+      },
+      {
+        "code": "tangalle",
+        "name": "Tangalle",
+        "active": true,
+        "order": 496
+      },
+      {
+        "code": "taprobane",
+        "name": "Taprobane",
+        "active": true,
+        "order": 497
+      },
+      {
+        "code": "tawalama",
+        "name": "Tawalama",
+        "active": true,
+        "order": 498
+      },
+      {
+        "code": "teldeniya",
+        "name": "Teldeniya",
+        "active": true,
+        "order": 499
+      },
+      {
+        "code": "thalaimannarpier",
+        "name": "Thalaimannar Pier",
+        "active": true,
+        "order": 500
+      },
+      {
+        "code": "thalawa",
+        "name": "Thalawa",
+        "active": true,
+        "order": 501
+      },
+      {
+        "code": "thalawathugoda",
+        "name": "Thalawathugoda",
+        "active": true,
+        "order": 502
+      },
+      {
+        "code": "thalduwa",
+        "name": "Thalduwa",
+        "active": true,
+        "order": 503
+      },
+      {
+        "code": "thambiluvil",
+        "name": "Thambiluvil",
+        "active": true,
+        "order": 504
+      },
+      {
+        "code": "thampalakamam",
+        "name": "Thampalakamam",
+        "active": true,
+        "order": 505
+      },
+      {
+        "code": "thanamalwila",
+        "name": "Thanamalwila",
+        "active": true,
+        "order": 506
+      },
+      {
+        "code": "thanthirimale",
+        "name": "Thanthirimale",
+        "active": true,
+        "order": 507
+      },
+      {
+        "code": "thihagoda",
+        "name": "Thihagoda",
+        "active": true,
+        "order": 508
+      },
+      {
+        "code": "thimbirigasyaya",
+        "name": "Thimbirigasyaya",
+        "active": true,
+        "order": 509
+      },
+      {
+        "code": "thirumurukandi",
+        "name": "Thirumurukandi",
+        "active": true,
+        "order": 510
+      },
+      {
+        "code": "thirunelvely",
+        "name": "Thirunelvely",
+        "active": true,
+        "order": 511
+      },
+      {
+        "code": "thoduwawa",
+        "name": "Thoduwawa",
+        "active": true,
+        "order": 512
+      },
+      {
+        "code": "thoppur",
+        "name": "Thoppur",
+        "active": true,
+        "order": 513
+      },
+      {
+        "code": "tirappane",
+        "name": "Tirappane",
+        "active": true,
+        "order": 514
+      },
+      {
+        "code": "tissamaharama",
+        "name": "Tissamaharama",
+        "active": true,
+        "order": 515
+      },
+      {
+        "code": "treasurydivision",
+        "name": "Treasury Division",
+        "active": true,
+        "order": 516
+      },
+      {
+        "code": "trincomalee",
+        "name": "Trincomalee",
+        "active": true,
+        "order": 517
+      },
+      {
+        "code": "trincomaleebazaar",
+        "name": "Trincomalee Bazaar",
+        "active": true,
+        "order": 518
+      },
+      {
+        "code": "udadumbara",
+        "name": "Uda Dumbara",
+        "active": true,
+        "order": 519
+      },
+      {
+        "code": "udappuwa",
+        "name": "Udappuwa",
+        "active": true,
+        "order": 520
+      },
+      {
+        "code": "udawalawe",
+        "name": "Udawalawe",
+        "active": true,
+        "order": 521
+      },
+      {
+        "code": "udugama",
+        "name": "Udugama",
+        "active": true,
+        "order": 522
+      },
+      {
+        "code": "uhana",
+        "name": "Uhana",
+        "active": true,
+        "order": 523
+      },
+      {
+        "code": "ukuwela",
+        "name": "Ukuwela",
+        "active": true,
+        "order": 524
+      },
+      {
+        "code": "unionplace",
+        "name": "Union Place",
+        "active": true,
+        "order": 525
+      },
+      {
+        "code": "universityofperadeniya",
+        "name": "University Of Peradeniya",
+        "active": true,
+        "order": 526
+      },
+      {
+        "code": "upcott",
+        "name": "Upcott",
+        "active": true,
+        "order": 527
+      },
+      {
+        "code": "uppuvely",
+        "name": "Uppuvely",
+        "active": true,
+        "order": 528
+      },
+      {
+        "code": "uragasmanhandiya",
+        "name": "Uragasmanhandiya",
+        "active": true,
+        "order": 529
+      },
+      {
+        "code": "urubokka",
+        "name": "Urubokka",
+        "active": true,
+        "order": 530
+      },
+      {
+        "code": "urumpirai",
+        "name": "Urumpirai",
+        "active": true,
+        "order": 531
+      },
+      {
+        "code": "uvaparanagama",
+        "name": "Uva Paranagama",
+        "active": true,
+        "order": 532
+      },
+      {
+        "code": "vaddukoddai",
+        "name": "Vaddukoddai",
+        "active": true,
+        "order": 533
+      },
+      {
+        "code": "vakarai",
+        "name": "Vakarai",
+        "active": true,
+        "order": 534
+      },
+      {
+        "code": "valachchenai",
+        "name": "Valachchenai",
+        "active": true,
+        "order": 535
+      },
+      {
+        "code": "valvettithurai",
+        "name": "Valvettithurai",
+        "active": true,
+        "order": 536
+      },
+      {
+        "code": "vavunathivu",
+        "name": "Vavunathivu",
+        "active": true,
+        "order": 537
+      },
+      {
+        "code": "vavuniya",
+        "name": "Vavuniya",
+        "active": true,
+        "order": 538
+      },
+      {
+        "code": "vavuniyacity",
+        "name": "Vavuniya City",
+        "active": true,
+        "order": 539
+      },
+      {
+        "code": "velanai",
+        "name": "Velanai",
+        "active": true,
+        "order": 540
+      },
+      {
+        "code": "vellaveli",
+        "name": "Vellaveli",
+        "active": true,
+        "order": 541
+      },
+      {
+        "code": "veyangoda",
+        "name": "Veyangoda",
+        "active": true,
+        "order": 542
+      },
+      {
+        "code": "visakha",
+        "name": "Visakha",
+        "active": true,
+        "order": 543
+      },
+      {
+        "code": "visuvamadu",
+        "name": "Visuvamadu",
+        "active": true,
+        "order": 544
+      },
+      {
+        "code": "wadduwa",
+        "name": "Wadduwa",
+        "active": true,
+        "order": 545
+      },
+      {
+        "code": "wahalkada",
+        "name": "Wahalkada",
+        "active": true,
+        "order": 546
+      },
+      {
+        "code": "waikkal",
+        "name": "Waikkal",
+        "active": true,
+        "order": 547
+      },
+      {
+        "code": "walapane",
+        "name": "Walapane",
+        "active": true,
+        "order": 548
+      },
+      {
+        "code": "walasmulla",
+        "name": "Walasmulla",
+        "active": true,
+        "order": 549
+      },
+      {
+        "code": "walgama",
+        "name": "Walgama",
+        "active": true,
+        "order": 550
+      },
+      {
+        "code": "wanduramba",
+        "name": "Wanduramba",
+        "active": true,
+        "order": 551
+      },
+      {
+        "code": "warakapola",
+        "name": "Warakapola",
+        "active": true,
+        "order": 552
+      },
+      {
+        "code": "warapitiya",
+        "name": "Warapitiya",
+        "active": true,
+        "order": 553
+      },
+      {
+        "code": "wardplace",
+        "name": "Ward Place",
+        "active": true,
+        "order": 554
+      },
+      {
+        "code": "wariyapola",
+        "name": "Wariyapola",
+        "active": true,
+        "order": 555
+      },
+      {
+        "code": "wattala",
+        "name": "Wattala",
+        "active": true,
+        "order": 556
+      },
+      {
+        "code": "wattegama",
+        "name": "Wattegama",
+        "active": true,
+        "order": 557
+      },
+      {
+        "code": "wayambauniversity",
+        "name": "Wayamba University",
+        "active": true,
+        "order": 558
+      },
+      {
+        "code": "weeraketiya",
+        "name": "Weeraketiya",
+        "active": true,
+        "order": 559
+      },
+      {
+        "code": "weerapokuna",
+        "name": "Weerapokuna",
+        "active": true,
+        "order": 560
+      },
+      {
+        "code": "weligama",
+        "name": "Weligama",
+        "active": true,
+        "order": 561
+      },
+      {
+        "code": "weligepola",
+        "name": "Weligepola",
+        "active": true,
+        "order": 562
+      },
+      {
+        "code": "welikanda",
+        "name": "Welikanda",
+        "active": true,
+        "order": 563
+      },
+      {
+        "code": "welimada",
+        "name": "Welimada",
+        "active": true,
+        "order": 564
+      },
+      {
+        "code": "welioya",
+        "name": "Weli-Oya",
+        "active": true,
+        "order": 565
+      },
+      {
+        "code": "welioyasampathnuwara",
+        "name": "Welioya-Sampath Nuwara",
+        "active": true,
+        "order": 566
+      },
+      {
+        "code": "welisara",
+        "name": "Welisara",
+        "active": true,
+        "order": 567
+      },
+      {
+        "code": "weliweriya",
+        "name": "Weliweriya",
+        "active": true,
+        "order": 568
+      },
+      {
+        "code": "wellawa",
+        "name": "Wellawa",
+        "active": true,
+        "order": 569
+      },
+      {
+        "code": "wellawatte",
+        "name": "Wellawatte",
+        "active": true,
+        "order": 570
+      },
+      {
+        "code": "wellawaya",
+        "name": "Wellawaya",
+        "active": true,
+        "order": 571
+      },
+      {
+        "code": "welpalla",
+        "name": "Welpalla",
+        "active": true,
+        "order": 572
+      },
+      {
+        "code": "wennappuwa",
+        "name": "Wennappuwa",
+        "active": true,
+        "order": 573
+      },
+      {
+        "code": "wijeramajunction",
+        "name": "Wijerama Junction",
+        "active": true,
+        "order": 574
+      },
+      {
+        "code": "wilgamuwa",
+        "name": "Wilgamuwa",
+        "active": true,
+        "order": 575
+      },
+      {
+        "code": "yakkala",
+        "name": "Yakkala",
+        "active": true,
+        "order": 576
+      },
+      {
+        "code": "yakkalamulla",
+        "name": "Yakkalamulla",
+        "active": true,
+        "order": 577
+      },
+      {
+        "code": "yatawatte",
+        "name": "Yatawatte",
+        "active": true,
+        "order": 578
+      },
+      {
+        "code": "yatiyantota",
+        "name": "Yatiyantota",
+        "active": true,
+        "order": 579
+      }
+    ],
+    "updatedAt": {
+      "$date": "2026-02-23T11:07:53.132Z"
+    }
+  }
+}

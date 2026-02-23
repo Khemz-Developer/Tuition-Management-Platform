@@ -1,11 +1,11 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Put, 
-  Delete, 
-  Body, 
-  Param, 
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
   Query,
   UseGuards,
   HttpStatus,
@@ -21,7 +21,7 @@ import { UserRole } from '../models/user.schema';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class DynamicConfigController {
-  constructor(private readonly dynamicConfigService: DynamicConfigService) {}
+  constructor(private readonly dynamicConfigService: DynamicConfigService) { }
 
   @Get()
   async getConfig(@Query('key') key: string = 'default') {
@@ -36,6 +36,17 @@ export class DynamicConfigController {
   @Put()
   async updateConfig(@Body() updateData: any, @Query('key') key: string = 'default') {
     return await this.dynamicConfigService.updateConfig(key, updateData);
+  }
+
+  // Settings Management
+  @Put('settings/general')
+  async updateGeneralSettings(@Body() settings: any, @Query('key') key: string = 'default') {
+    return await this.dynamicConfigService.updateGeneralSettings(key, settings);
+  }
+
+  @Put('settings/branding')
+  async updateBrandingSettings(@Body() settings: any, @Query('key') key: string = 'default') {
+    return await this.dynamicConfigService.updateBrandingSettings(key, settings);
   }
 
   // Education Levels Management
@@ -102,6 +113,72 @@ export class DynamicConfigController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async removeGrade(@Param('gradeCode') gradeCode: string, @Query('key') key: string = 'default') {
     await this.dynamicConfigService.removeGrade(key, gradeCode);
+  }
+
+  // Cities Management
+  @Post('cities')
+  @HttpCode(HttpStatus.CREATED)
+  async addCity(@Body() body: { code: string; name: string; active?: boolean; order?: number }, @Query('key') key: string = 'default') {
+    return await this.dynamicConfigService.addCity(key, body);
+  }
+
+  @Put('cities/:cityCode')
+  async updateCity(
+    @Param('cityCode') cityCode: string,
+    @Body() updateData: any,
+    @Query('key') key: string = 'default'
+  ) {
+    return await this.dynamicConfigService.updateCity(key, decodeURIComponent(cityCode), updateData);
+  }
+
+  @Delete('cities/:cityCode')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removeCity(@Param('cityCode') cityCode: string, @Query('key') key: string = 'default') {
+    await this.dynamicConfigService.removeCity(key, decodeURIComponent(cityCode));
+  }
+
+  // Districts Management
+  @Post('districts')
+  @HttpCode(HttpStatus.CREATED)
+  async addDistrict(@Body() body: { code: string; name: string; active?: boolean; order?: number }, @Query('key') key: string = 'default') {
+    return await this.dynamicConfigService.addDistrict(key, body);
+  }
+
+  @Put('districts/:districtCode')
+  async updateDistrict(
+    @Param('districtCode') districtCode: string,
+    @Body() updateData: any,
+    @Query('key') key: string = 'default'
+  ) {
+    return await this.dynamicConfigService.updateDistrict(key, decodeURIComponent(districtCode), updateData);
+  }
+
+  @Delete('districts/:districtCode')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removeDistrict(@Param('districtCode') districtCode: string, @Query('key') key: string = 'default') {
+    await this.dynamicConfigService.removeDistrict(key, decodeURIComponent(districtCode));
+  }
+
+  // Provinces Management
+  @Post('provinces')
+  @HttpCode(HttpStatus.CREATED)
+  async addProvince(@Body() body: { code: string; name: string; active?: boolean; order?: number }, @Query('key') key: string = 'default') {
+    return await this.dynamicConfigService.addProvince(key, body);
+  }
+
+  @Put('provinces/:provinceCode')
+  async updateProvince(
+    @Param('provinceCode') provinceCode: string,
+    @Body() updateData: any,
+    @Query('key') key: string = 'default'
+  ) {
+    return await this.dynamicConfigService.updateProvince(key, decodeURIComponent(provinceCode), updateData);
+  }
+
+  @Delete('provinces/:provinceCode')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removeProvince(@Param('provinceCode') provinceCode: string, @Query('key') key: string = 'default') {
+    await this.dynamicConfigService.removeProvince(key, decodeURIComponent(provinceCode));
   }
 
   // Profile Sections Management

@@ -154,6 +154,21 @@ export class Grade {
 }
 
 @Schema({ _id: false })
+export class LocationItem {
+  @Prop({ required: true })
+  code: string;
+
+  @Prop({ required: true })
+  name: string;
+
+  @Prop({ default: true })
+  active: boolean;
+
+  @Prop({ default: 1 })
+  order: number;
+}
+
+@Schema({ _id: false })
 export class ProfileSection {
   @Prop({ required: true })
   id: string;
@@ -213,6 +228,39 @@ export class ProfileTemplate {
   isDefault: boolean;
 }
 
+@Schema({ _id: false })
+export class GeneralSettings {
+  @Prop({ default: 'Tuition Management System' })
+  platformName: string;
+
+  @Prop({ default: 'support@example.com' })
+  supportEmail: string;
+
+  @Prop({ default: 'A comprehensive platform for managing tuition classes and students.' })
+  description: string;
+
+  @Prop({ default: false })
+  teacherAutoApproval: boolean;
+
+  @Prop({ default: true })
+  allowStudentRegistration: boolean;
+}
+
+@Schema({ _id: false })
+export class BrandingSettings {
+  @Prop()
+  logoUrl: string;
+
+  @Prop()
+  faviconUrl: string;
+
+  @Prop({ default: '#3b82f6' })
+  primaryColor: string;
+
+  @Prop({ default: '#8b5cf6' })
+  accentColor: string;
+}
+
 @Schema({ timestamps: true })
 export class DynamicConfig {
   @Prop({ required: true, unique: true })
@@ -239,6 +287,16 @@ export class DynamicConfig {
   @Prop({ type: [Grade], _id: false })
   grades: Grade[];
 
+  // Location options (admin-managed cities, districts, provinces for teacher profile)
+  @Prop({ type: [LocationItem], _id: false })
+  cities: LocationItem[];
+
+  @Prop({ type: [LocationItem], _id: false })
+  districts: LocationItem[];
+
+  @Prop({ type: [LocationItem], _id: false })
+  provinces: LocationItem[];
+
   // Profile sections configuration
   @Prop({ type: [ProfileSection], _id: false })
   profileSections: ProfileSection[];
@@ -257,6 +315,12 @@ export class DynamicConfig {
     requireApproval?: boolean;
   };
 
+  @Prop({ type: GeneralSettings, _id: false })
+  generalSettings?: GeneralSettings;
+
+  @Prop({ type: BrandingSettings, _id: false })
+  brandingSettings?: BrandingSettings;
+
   @Prop({ type: Types.ObjectId, ref: 'User' })
   createdBy?: Types.ObjectId;
 
@@ -272,6 +336,9 @@ DynamicConfigSchema.index({ active: 1 });
 DynamicConfigSchema.index({ 'educationLevels.code': 1 });
 DynamicConfigSchema.index({ 'subjects.code': 1 });
 DynamicConfigSchema.index({ 'grades.code': 1 });
+DynamicConfigSchema.index({ 'cities.code': 1 });
+DynamicConfigSchema.index({ 'districts.code': 1 });
+DynamicConfigSchema.index({ 'provinces.code': 1 });
 
 // Methods
 DynamicConfigSchema.methods.getEducationLevel = function (code: string) {
@@ -304,4 +371,16 @@ DynamicConfigSchema.methods.getActiveSubjects = function () {
 
 DynamicConfigSchema.methods.getActiveGrades = function () {
   return this.grades?.filter(grade => grade.active).sort((a, b) => a.order - b.order) || [];
+};
+
+DynamicConfigSchema.methods.getActiveCities = function () {
+  return this.cities?.filter(c => c.active).sort((a, b) => a.order - b.order) || [];
+};
+
+DynamicConfigSchema.methods.getActiveDistricts = function () {
+  return this.districts?.filter(d => d.active).sort((a, b) => a.order - b.order) || [];
+};
+
+DynamicConfigSchema.methods.getActiveProvinces = function () {
+  return this.provinces?.filter(p => p.active).sort((a, b) => a.order - b.order) || [];
 };

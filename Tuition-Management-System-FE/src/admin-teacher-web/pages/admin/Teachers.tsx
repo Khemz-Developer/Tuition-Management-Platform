@@ -20,10 +20,17 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar'
 import { Skeleton } from '@/shared/components/ui/skeleton'
 import { Textarea } from '@/shared/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/components/ui/select'
 import { DataTable, Column } from '@/shared/components/ui/data-table'
-import { MoreVertical, Check, X, Eye, Mail, Loader2, Star } from 'lucide-react'
+import { MoreVertical, Check, X, Eye, Mail, Loader2, Star, RefreshCw } from 'lucide-react'
 import { getInitials } from '@/lib/utils'
-import { get, post } from '@/shared/services/api'
+import { get, post, patch } from '@/shared/services/api'
 import { useToast } from '@/shared/components/ui/use-toast'
 
 interface Teacher {
@@ -87,6 +94,10 @@ export default function AdminTeachers() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isRejectOpen, setIsRejectOpen] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false)
+  const [statusTeacher, setStatusTeacher] = useState<Teacher | null>(null)
+  const [newStatus, setNewStatus] = useState<string>('')
+  const [statusChangeReason, setStatusChangeReason] = useState('')
   const [isActionLoading, setIsActionLoading] = useState(false)
   const [isDetailsLoading, setIsDetailsLoading] = useState(false)
   const [teacherDetails, setTeacherDetails] = useState<Teacher | null>(null)
@@ -348,6 +359,61 @@ export default function AdminTeachers() {
     }
   }
 
+  // Open change status dialog
+  const openStatusDialog = (teacher: Teacher) => {
+    setStatusTeacher(teacher)
+    setNewStatus(teacher.status)
+    setStatusChangeReason('')
+    setIsStatusDialogOpen(true)
+  }
+
+  // Handle change teacher status
+  const handleChangeStatus = async () => {
+    if (!statusTeacher) return
+    if (newStatus === 'REJECTED' && !statusChangeReason.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please provide a reason when setting status to Rejected',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      setIsActionLoading(true)
+      await patch(`/admin/teachers/${statusTeacher._id}/status`, {
+        status: newStatus,
+        ...(newStatus === 'REJECTED' && { reason: statusChangeReason.trim() }),
+      })
+      toast({
+        title: 'Success',
+        description: `Status updated to ${newStatus === 'APPROVED' ? 'Approved' : newStatus === 'REJECTED' ? 'Rejected' : 'Pending'}.`,
+        variant: 'success',
+      })
+      setIsStatusDialogOpen(false)
+      setStatusTeacher(null)
+      setNewStatus('')
+      setStatusChangeReason('')
+      if (teacherDetails?._id === statusTeacher._id) {
+        setTeacherDetails(null)
+        setIsDetailsOpen(false)
+      }
+      // Refresh teachers list
+      const params: Record<string, unknown> = { page: 1, limit: 100 }
+      if (activeTab !== 'all') params.status = activeTab.toUpperCase()
+      const response = await get<TeachersResponse>('/admin/teachers', params)
+      setTeachers(response.data || [])
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err?.message || 'Failed to update status',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsActionLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Page header */}
@@ -403,6 +469,10 @@ export default function AdminTeachers() {
                       <DropdownMenuItem onClick={() => handleViewDetails(row._id)}>
                         <Eye className="mr-2 h-4 w-4" />
                         View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => openStatusDialog(row)} disabled={isActionLoading}>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Change Status
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Mail className="mr-2 h-4 w-4" />
@@ -631,6 +701,19 @@ export default function AdminTeachers() {
             <Button variant="outline" onClick={() => setIsDetailsOpen(false)}>
               Close
             </Button>
+            {teacherDetails && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  openStatusDialog(teacherDetails)
+                  setIsDetailsOpen(false)
+                }}
+                disabled={isActionLoading}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Change Status
+              </Button>
+            )}
             {teacherDetails?.status === 'PENDING' && (
               <>
                 <Button
@@ -722,6 +805,72 @@ export default function AdminTeachers() {
                   <X className="mr-2 h-4 w-4" />
                   Reject Teacher
                 </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Status Dialog */}
+      <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Teacher Status</DialogTitle>
+            <DialogDescription>
+              Update the status for {statusTeacher?.firstName} {statusTeacher?.lastName}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Status</label>
+              <Select value={newStatus} onValueChange={setNewStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="APPROVED">Approved</SelectItem>
+                  <SelectItem value="REJECTED">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {newStatus === 'REJECTED' && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">Reason (required for Rejected)</label>
+                <Textarea
+                  placeholder="Enter reason for rejection..."
+                  value={statusChangeReason}
+                  onChange={(e) => setStatusChangeReason(e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsStatusDialogOpen(false)
+                setStatusTeacher(null)
+                setNewStatus('')
+                setStatusChangeReason('')
+              }}
+              disabled={isActionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleChangeStatus}
+              disabled={isActionLoading || (newStatus === 'REJECTED' && !statusChangeReason.trim())}
+            >
+              {isActionLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                'Update Status'
               )}
             </Button>
           </DialogFooter>

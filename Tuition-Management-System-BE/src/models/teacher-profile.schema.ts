@@ -15,6 +15,9 @@ export class Location {
   city?: string;
 
   @Prop()
+  district?: string;
+
+  @Prop()
   state?: string;
 
   @Prop({ default: 'India' })
@@ -46,6 +49,24 @@ export class Contact {
 }
 
 @Schema({ _id: false })
+export class PriceByGrade {
+  @Prop({ required: true })
+  grade: string;
+
+  @Prop()
+  subject?: string;
+
+  @Prop()
+  hourlyRate?: string;
+
+  @Prop()
+  monthlyFee?: string;
+
+  @Prop()
+  groupClassPrice?: string;
+}
+
+@Schema({ _id: false })
 export class Pricing {
   @Prop()
   hourlyRate?: string;
@@ -55,6 +76,24 @@ export class Pricing {
 
   @Prop()
   groupClassPrice?: string;
+
+  @Prop({ type: [PriceByGrade], _id: false })
+  priceByGrade?: PriceByGrade[];
+}
+
+@Schema({ _id: false })
+export class AvailabilitySlot {
+  @Prop()
+  startTime?: string;
+
+  @Prop()
+  endTime?: string;
+
+  @Prop({ type: [String], default: [] })
+  grades: string[];
+
+  @Prop({ type: [String], default: [] })
+  subjects: string[];
 }
 
 @Schema({ _id: false })
@@ -83,11 +122,16 @@ export class DayAvailability {
   @Prop({ default: false })
   enabled: boolean;
 
+  /** Legacy: single slot per day. Used when slots is empty. */
   @Prop()
   startTime?: string;
 
   @Prop()
   endTime?: string;
+
+  /** Multiple slots per day; each slot can have its own time and grades. */
+  @Prop({ type: [AvailabilitySlot], _id: false, default: undefined })
+  slots?: AvailabilitySlot[];
 }
 
 @Schema({ _id: false })

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
 import { Input } from '@/shared/components/ui/input'
@@ -6,9 +7,99 @@ import { Textarea } from '@/shared/components/ui/textarea'
 import { Switch } from '@/shared/components/ui/switch'
 import { Separator } from '@/shared/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
-import { Save } from 'lucide-react'
+import { Save, Loader2 } from 'lucide-react'
+import { SettingsService } from '@/shared/services/settings.service'
+import { GeneralSettings, BrandingSettings } from '@/shared/types/settings.types'
+import { useToast } from '@/shared/components/ui/use-toast'
 
 export default function AdminSettings() {
+  const { toast } = useToast()
+  const [generalSettings, setGeneralSettings] = useState<GeneralSettings>({
+    platformName: '',
+    supportEmail: '',
+    description: '',
+    teacherAutoApproval: false,
+    allowStudentRegistration: true
+  })
+  const [brandingSettings, setBrandingSettings] = useState<BrandingSettings>({
+    logoUrl: '',
+    faviconUrl: '',
+    primaryColor: '#3b82f6',
+    accentColor: '#8b5cf6'
+  })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    loadSettings()
+  }, [])
+
+  const loadSettings = async () => {
+    try {
+      setLoading(true)
+      const config = await SettingsService.getSettings()
+      if (config.generalSettings) setGeneralSettings(config.generalSettings)
+      if (config.brandingSettings) setBrandingSettings(config.brandingSettings)
+    } catch (error) {
+      console.error('Failed to load settings:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to load settings',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSaveGeneral = async () => {
+    try {
+      setSaving(true)
+      await SettingsService.updateGeneralSettings(generalSettings)
+      toast({
+        title: 'Success',
+        description: 'General settings saved successfully',
+      })
+    } catch (error) {
+      console.error('Failed to save general settings:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to save general settings',
+        variant: 'destructive',
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSaveBranding = async () => {
+    try {
+      setSaving(true)
+      await SettingsService.updateBrandingSettings(brandingSettings)
+      toast({
+        title: 'Success',
+        description: 'Branding settings saved successfully',
+      })
+    } catch (error) {
+      console.error('Failed to save branding settings:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to save branding settings',
+        variant: 'destructive',
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Page header */}
@@ -34,19 +125,29 @@ export default function AdminSettings() {
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="platformName">Platform Name</Label>
-                <Input id="platformName" defaultValue="Tuition Management System" />
+                <Input
+                  id="platformName"
+                  value={generalSettings.platformName}
+                  onChange={(e) => setGeneralSettings({ ...generalSettings, platformName: e.target.value })}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="supportEmail">Support Email</Label>
-                <Input id="supportEmail" type="email" defaultValue="support@example.com" />
+                <Input
+                  id="supportEmail"
+                  type="email"
+                  value={generalSettings.supportEmail}
+                  onChange={(e) => setGeneralSettings({ ...generalSettings, supportEmail: e.target.value })}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="description">Platform Description</Label>
                 <Textarea
                   id="description"
-                  defaultValue="A comprehensive platform for managing tuition classes and students."
+                  value={generalSettings.description}
+                  onChange={(e) => setGeneralSettings({ ...generalSettings, description: e.target.value })}
                   rows={3}
                 />
               </div>
@@ -60,7 +161,10 @@ export default function AdminSettings() {
                     Automatically approve new teacher registrations
                   </p>
                 </div>
-                <Switch />
+                <Switch
+                  checked={generalSettings.teacherAutoApproval}
+                  onCheckedChange={(checked) => setGeneralSettings({ ...generalSettings, teacherAutoApproval: checked })}
+                />
               </div>
 
               <div className="flex items-center justify-between">
@@ -70,11 +174,14 @@ export default function AdminSettings() {
                     Allow students to register without teacher invitation
                   </p>
                 </div>
-                <Switch defaultChecked />
+                <Switch
+                  checked={generalSettings.allowStudentRegistration}
+                  onCheckedChange={(checked) => setGeneralSettings({ ...generalSettings, allowStudentRegistration: checked })}
+                />
               </div>
 
-              <Button>
-                <Save className="mr-2 h-4 w-4" />
+              <Button onClick={handleSaveGeneral} disabled={saving}>
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Save Changes
               </Button>
             </CardContent>
@@ -90,27 +197,47 @@ export default function AdminSettings() {
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="logo">Logo URL</Label>
-                <Input id="logo" placeholder="https://example.com/logo.png" />
+                <Input
+                  id="logo"
+                  placeholder="https://example.com/logo.png"
+                  value={brandingSettings.logoUrl || ''}
+                  onChange={(e) => setBrandingSettings({ ...brandingSettings, logoUrl: e.target.value })}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="favicon">Favicon URL</Label>
-                <Input id="favicon" placeholder="https://example.com/favicon.ico" />
+                <Input
+                  id="favicon"
+                  placeholder="https://example.com/favicon.ico"
+                  value={brandingSettings.faviconUrl || ''}
+                  onChange={(e) => setBrandingSettings({ ...brandingSettings, faviconUrl: e.target.value })}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="primaryColor">Primary Color</Label>
-                  <Input id="primaryColor" type="color" defaultValue="#3b82f6" />
+                  <Input
+                    id="primaryColor"
+                    type="color"
+                    value={brandingSettings.primaryColor}
+                    onChange={(e) => setBrandingSettings({ ...brandingSettings, primaryColor: e.target.value })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="accentColor">Accent Color</Label>
-                  <Input id="accentColor" type="color" defaultValue="#8b5cf6" />
+                  <Input
+                    id="accentColor"
+                    type="color"
+                    value={brandingSettings.accentColor}
+                    onChange={(e) => setBrandingSettings({ ...brandingSettings, accentColor: e.target.value })}
+                  />
                 </div>
               </div>
 
-              <Button>
-                <Save className="mr-2 h-4 w-4" />
+              <Button onClick={handleSaveBranding} disabled={saving}>
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Save Changes
               </Button>
             </CardContent>
@@ -154,9 +281,9 @@ export default function AdminSettings() {
                 <Switch defaultChecked />
               </div>
 
-              <Button>
+              <Button disabled>
                 <Save className="mr-2 h-4 w-4" />
-                Save Changes
+                Save Changes (Not Implemented)
               </Button>
             </CardContent>
           </Card>
@@ -199,9 +326,9 @@ export default function AdminSettings() {
                 <Switch defaultChecked />
               </div>
 
-              <Button>
+              <Button disabled>
                 <Save className="mr-2 h-4 w-4" />
-                Save Changes
+                Save Changes (Not Implemented)
               </Button>
             </CardContent>
           </Card>

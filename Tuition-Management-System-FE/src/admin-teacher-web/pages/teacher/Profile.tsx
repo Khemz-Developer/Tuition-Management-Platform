@@ -13,11 +13,13 @@ import { Badge } from '@/shared/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar'
 import { Checkbox } from '@/shared/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select'
+import { SearchableSelect } from '@/shared/components/ui/searchable-select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs'
 import { useAuth } from '@/shared/hooks/useAuth'
 import { useToast } from '@/shared/components/ui/use-toast'
 import { getInitials } from '@/lib/utils'
-import { get, put } from '@/shared/services/api'
+import api, { get, put } from '@/shared/services/api'
+import { LocationsService } from '@/shared/services/locations.service'
 import { ImageCropper } from '@/shared/components/ImageCropper'
 import {
   Save,
@@ -29,7 +31,10 @@ import {
   MapPin,
   Briefcase,
   Link as LinkIcon,
+  Plus,
+  Clock,
 } from 'lucide-react'
+import { CITIES as FALLBACK_CITIES, PROVINCES as FALLBACK_PROVINCES, DISTRICTS as FALLBACK_DISTRICTS } from './locationOptions'
 
 // Education level configuration
 interface EducationLevelConfig {
@@ -50,6 +55,20 @@ const educationLevels: Record<string, EducationLevelConfig> = {
     subjects: ['Combined Maths', 'Physics', 'Chemistry', 'Biology', 'ICT', 'Economics', 'Accounting', 'Business Studies', 'Geography', 'History', 'Political Science', 'Logic', 'Sinhala', 'Tamil', 'English', 'Arabic', 'French', 'German', 'Japanese', 'Chinese'],
     grades: ['12', '13']
   },
+}
+
+const educationLevelLabels: Record<string, string> = {
+  PRIMARY: 'Primary',
+  OL: 'O/L',
+  AL: 'A/L',
+}
+
+function getEducationLevelForGrade(grade: string): string {
+  const n = Number(grade)
+  if (n >= 1 && n <= 5) return educationLevelLabels.PRIMARY
+  if (n >= 6 && n <= 11) return educationLevelLabels.OL
+  if (n >= 12 && n <= 13) return educationLevelLabels.AL
+  return ''
 }
 
 const experienceLevels = [
@@ -89,6 +108,7 @@ const profileSchema = z.object({
   
   // Location
   city: z.string().optional(),
+  district: z.string().optional(),
   state: z.string().optional(),
   address: z.string().optional(),
   
@@ -96,7 +116,15 @@ const profileSchema = z.object({
   hourlyRate: z.string().optional(),
   monthlyFee: z.string().optional(),
   groupClassPrice: z.string().optional(),
-  
+  usePriceByGrade: z.boolean().optional(),
+  priceByGrade: z.array(z.object({
+    grade: z.string(),
+    subject: z.string().optional(),
+    hourlyRate: z.string().optional(),
+    monthlyFee: z.string().optional(),
+    groupClassPrice: z.string().optional(),
+  })).optional(),
+
   // Languages
   languages: z.array(z.string()).min(1, 'Select at least one language'),
   
@@ -106,11 +134,17 @@ const profileSchema = z.object({
   // Online Platforms
   onlinePlatforms: z.array(z.string()).optional(),
   
-  // Availability
+  // Availability (per day: enabled + slots with time and grades)
   availability: z.record(z.object({
     enabled: z.boolean(),
     startTime: z.string().optional(),
     endTime: z.string().optional(),
+    slots: z.array(z.object({
+      startTime: z.string().optional(),
+      endTime: z.string().optional(),
+      grades: z.array(z.string()).default([]),
+      subjects: z.array(z.string()).default([]),
+    })).optional(),
   })).optional(),
 
   // Social Links
@@ -142,12 +176,18 @@ export default function TeacherProfile() {
   const [showCropper, setShowCropper] = useState(false)
   const [imageToCrop, setImageToCrop] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [locationOptions, setLocationOptions] = useState<{
+    cities: string[]
+    districts: string[]
+    provinces: string[]
+  }>({ cities: [], districts: [], provinces: [] })
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
+    getValues,
     formState: { errors },
     reset,
   } = useForm<ProfileFormData>({
@@ -166,10 +206,91 @@ export default function TeacherProfile() {
   const watchedTeachingModes = watch('teachingModes')
   const watchedLanguages = watch('languages')
 
-  // Load profile data
+  // Only the grades the user selected under Education & Subjects (for availability slots and price-by-grade)
+  const selectedGradesFromLevels = (watchedEducationLevels || [])
+    .flatMap((el) => el.grades ?? [])
+    .filter(Boolean)
+  const uniqueGrades = Array.from(new Set<string>(selectedGradesFromLevels)).sort(
+    (a, b) => Number(a) - Number(b)
+  )
+
+  // All subjects from selected education levels (for availability slots and price-by-grade)
+  const allSubjectsFromLevels = (watchedEducationLevels || [])
+    .flatMap((el) => el.subjects ?? [])
+    .filter(Boolean)
+  const uniqueSubjects = Array.from(new Set<string>(allSubjectsFromLevels)).sort()
+
+  // When "use price by grade" is on and education levels gain new grades, add those grades to priceByGrade
+  useEffect(() => {
+    if (!getValues('usePriceByGrade') || uniqueGrades.length === 0) return
+    const current = getValues('priceByGrade') || []
+    const currentGrades = new Set(current.map((r) => r.grade))
+    const missing = uniqueGrades.filter((g) => !currentGrades.has(g))
+    if (missing.length > 0) {
+      setValue('priceByGrade', [
+        ...current,
+        ...missing.map((grade) => ({ grade, subject: '', hourlyRate: '', monthlyFee: '', groupClassPrice: '' })),
+      ])
+    }
+  }, [uniqueGrades.join(',')])
+
+  // Load profile data and provinces from Sri Lanka locations API (RapidAPI)
   useEffect(() => {
     loadProfile()
+    loadProvinces()
   }, [])
+
+  const loadProvinces = async () => {
+    try {
+      const list = await LocationsService.getProvinces()
+      setLocationOptions((prev) => ({
+        ...prev,
+        provinces: list.length > 0 ? list : FALLBACK_PROVINCES,
+      }))
+    } catch {
+      setLocationOptions((prev) => ({ ...prev, provinces: FALLBACK_PROVINCES }))
+    }
+  }
+
+  const selectedProvince = watch('state')
+  const selectedDistrict = watch('district')
+
+  // Load districts when province is selected (cascade from locations API)
+  useEffect(() => {
+    if (!selectedProvince?.trim()) {
+      setLocationOptions((prev) => ({ ...prev, districts: [], cities: [] }))
+      return
+    }
+    LocationsService.getDistricts(selectedProvince)
+      .then((list) => {
+        setLocationOptions((prev) => ({
+          ...prev,
+          districts: list.length > 0 ? list : FALLBACK_DISTRICTS,
+          cities: [],
+        }))
+      })
+      .catch(() => {
+        setLocationOptions((prev) => ({ ...prev, districts: FALLBACK_DISTRICTS, cities: [] }))
+      })
+  }, [selectedProvince])
+
+  // Load cities when district is selected (cascade from locations API)
+  useEffect(() => {
+    if (!selectedDistrict?.trim()) {
+      setLocationOptions((prev) => ({ ...prev, cities: [] }))
+      return
+    }
+    LocationsService.getCities(selectedDistrict)
+      .then((list) => {
+        setLocationOptions((prev) => ({
+          ...prev,
+          cities: list.length > 0 ? list : FALLBACK_CITIES,
+        }))
+      })
+      .catch(() => {
+        setLocationOptions((prev) => ({ ...prev, cities: FALLBACK_CITIES }))
+      })
+  }, [selectedDistrict])
 
   const loadProfile = async () => {
     try {
@@ -179,17 +300,38 @@ export default function TeacherProfile() {
       
       // Set form values
       if (data) {
-        // Convert availability Map to object if needed
+        // Convert availability Map to object; normalize to slots format
         let availabilityData: any = {}
-        if (data.availability) {
-          if (data.availability instanceof Map) {
-            data.availability.forEach((value: any, key: any) => {
-              availabilityData[key] = value
-            })
-          } else {
-            availabilityData = data.availability
+        const raw: Record<string, any> =
+          data.availability && typeof data.availability === 'object' && !(data.availability instanceof Map)
+            ? data.availability
+            : data.availability instanceof Map
+              ? Object.fromEntries(data.availability)
+              : {}
+        daysOfWeek.forEach((day) => {
+          const dayData = raw[day]
+          if (!dayData) {
+            availabilityData[day] = { enabled: false, slots: [] }
+            return
           }
-        }
+          const enabled = !!dayData.enabled
+          let slots = dayData.slots && Array.isArray(dayData.slots) ? [...dayData.slots] : []
+          if (slots.length === 0 && enabled && (dayData.startTime || dayData.endTime)) {
+            slots = [{
+              startTime: dayData.startTime || '',
+              endTime: dayData.endTime || '',
+              grades: dayData.grades || [],
+              subjects: dayData.subjects || [],
+            }]
+          }
+          if (slots.length > 0) {
+            slots = slots.map((s: { startTime?: string; endTime?: string; grades?: string[]; subjects?: string[] }) => ({
+              ...s,
+              subjects: s.subjects && Array.isArray(s.subjects) ? s.subjects : [],
+            }))
+          }
+          availabilityData[day] = { ...dayData, enabled, slots }
+        })
 
         // Convert old education level format to new format if needed
         let educationLevelsData = data.educationLevels || []
@@ -202,6 +344,15 @@ export default function TeacherProfile() {
           }]
         }
 
+        const loadUniqueGrades = educationLevelsData.flatMap((el: { level: string }) => educationLevels[el.level]?.grades ?? [])
+        const sortedGrades = Array.from(new Set<string>(loadUniqueGrades)).sort((a, b) => Number(a) - Number(b))
+        const priceByGradeMerged = sortedGrades.map((grade) => {
+          const existing = data.pricing?.priceByGrade?.find((r: { grade: string; subject?: string }) => r.grade === grade)
+          return existing
+            ? { grade, subject: existing.subject ?? '', hourlyRate: existing.hourlyRate ?? '', monthlyFee: existing.monthlyFee ?? '', groupClassPrice: existing.groupClassPrice ?? '' }
+            : { grade, subject: '', hourlyRate: '', monthlyFee: '', groupClassPrice: '' }
+        })
+
         reset({
           name: data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : user?.name || '',
           phone: data.contact?.phone || '',
@@ -212,11 +363,14 @@ export default function TeacherProfile() {
           experience: data.experienceLevel || data.experience || '',
           qualifications: data.qualifications || [],
           city: data.location?.city || '',
+          district: data.location?.district || '',
           state: data.location?.state || '',
           address: data.location?.address || '',
           hourlyRate: data.pricing?.hourlyRate || '',
           monthlyFee: data.pricing?.monthlyFee || '',
           groupClassPrice: data.pricing?.groupClassPrice || '',
+          usePriceByGrade: !!(data.pricing?.priceByGrade && data.pricing.priceByGrade.length > 0),
+          priceByGrade: priceByGradeMerged.length > 0 ? priceByGradeMerged : (data.pricing?.priceByGrade || []),
           languages: data.languages || [],
           studentTargetTypes: data.studentTargetTypes || [],
           onlinePlatforms: data.onlinePlatforms || [],
@@ -427,6 +581,15 @@ export default function TeacherProfile() {
       let imageUrl: string | null = profileImage || null
       if (imageFile) {
         try {
+          if (!localStorage.getItem('accessToken')) {
+            toast({
+              title: 'Session expired',
+              description: 'Please sign in again to upload images',
+              variant: 'destructive',
+            })
+            setIsLoading(false)
+            return
+          }
           setIsUploading(true)
           setUploadProgress(0)
           
@@ -434,18 +597,11 @@ export default function TeacherProfile() {
           formData.append('file', imageFile)
           formData.append('folder', 'teacher-profiles')
           
-          // Use axios directly for upload progress
-          const axios = (await import('axios')).default
-          const token = localStorage.getItem('accessToken')
-          const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-          
-          const uploadResult = await axios.post<{ success: boolean; data: { url: string; publicId: string; message?: string } }>(
-            `${API_URL}/upload/image`,
+          // Use shared api instance so auth token and 401 refresh are applied
+          const uploadResult = await api.post<{ success: boolean; data: { url: string; publicId: string; message?: string } }>(
+            '/upload/image',
             formData,
             {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
               onUploadProgress: (progressEvent) => {
                 if (progressEvent.total) {
                   const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
@@ -502,20 +658,30 @@ export default function TeacherProfile() {
       }
 
       // Add location if any field is provided
-      if (data.city || data.state || data.address) {
+      if (data.city || data.district || data.state || data.address) {
         updateData.location = {
           city: data.city || undefined,
+          district: data.district || undefined,
           state: data.state || undefined,
           address: data.address || undefined,
         }
       }
 
       // Add pricing if any field is provided
-      if (data.hourlyRate || data.monthlyFee || data.groupClassPrice) {
+      if (data.hourlyRate || data.monthlyFee || data.groupClassPrice || (data.usePriceByGrade && data.priceByGrade?.length)) {
         updateData.pricing = {
           hourlyRate: data.hourlyRate || undefined,
           monthlyFee: data.monthlyFee || undefined,
           groupClassPrice: data.groupClassPrice || undefined,
+        }
+        if (data.usePriceByGrade && data.priceByGrade?.length) {
+          updateData.pricing.priceByGrade = data.priceByGrade.map((row) => ({
+            grade: row.grade,
+            subject: row.subject || undefined,
+            hourlyRate: row.hourlyRate || undefined,
+            monthlyFee: row.monthlyFee || undefined,
+            groupClassPrice: row.groupClassPrice || undefined,
+          }))
         }
       }
 
@@ -538,17 +704,25 @@ export default function TeacherProfile() {
         }
       }
 
-      // Add availability if any day is enabled
+      // Add availability: per-day slots with time and grades
       const availability: any = {}
       let hasAvailability = false
       daysOfWeek.forEach((day) => {
         const dayData = watch(`availability.${day}`)
-        if (dayData?.enabled) {
+        const slots = dayData?.slots && Array.isArray(dayData.slots) ? dayData.slots : []
+        if (dayData?.enabled && slots.length > 0) {
           availability[day] = {
             enabled: true,
-            startTime: dayData.startTime || undefined,
-            endTime: dayData.endTime || undefined,
+            slots: slots.map((slot: { startTime?: string; endTime?: string; grades?: string[]; subjects?: string[] }) => ({
+              startTime: slot.startTime || undefined,
+              endTime: slot.endTime || undefined,
+              grades: slot.grades && Array.isArray(slot.grades) ? slot.grades : [],
+              subjects: slot.subjects && Array.isArray(slot.subjects) ? slot.subjects : [],
+            })),
           }
+          hasAvailability = true
+        } else if (dayData?.enabled) {
+          availability[day] = { enabled: true, slots: [] }
           hasAvailability = true
         }
       })
@@ -616,7 +790,13 @@ export default function TeacherProfile() {
   if (isLoading && !profileData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="text-center space-y-4">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary via-purple-600 to-pink-600 rounded-full blur-xl opacity-50 animate-pulse" />
+            <div className="relative animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent shadow-lg" />
+          </div>
+          <p className="text-muted-foreground font-medium animate-pulse">Loading your profile...</p>
+        </div>
       </div>
     )
   }
@@ -639,9 +819,9 @@ export default function TeacherProfile() {
       : profileData?.firstName || profileData?.lastName || user?.name || 'Teacher',
     email: user?.email || 'email@example.com',
     phone: profileData?.contact?.phone || '',
-    location: profileData?.location?.city && profileData?.location?.state
-      ? `${profileData.location.city}, ${profileData.location.state}`
-      : profileData?.location?.city || profileData?.location?.state || 'Not set',
+    location: [profileData?.location?.city, profileData?.location?.district, profileData?.location?.state].filter(Boolean).length
+      ? [profileData?.location?.city, profileData?.location?.district, profileData?.location?.state].filter(Boolean).join(', ')
+      : 'Not set',
     bio: profileData?.bio || '',
     subjects: profileData?.subjects || [],
     qualifications: profileData?.qualifications || [],
@@ -663,249 +843,317 @@ export default function TeacherProfile() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Page header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-          <p className="text-muted-foreground">Manage your public profile and settings</p>
-        </div>
-        <div className="flex gap-2">
-          {profileData?.slug && (
-            <Button variant="outline" asChild>
-              <Link to={`/t/${profileData.slug}`} target="_blank" rel="noopener noreferrer">
-                <Eye className="mr-2 h-4 w-4" />
-                View Public Profile
-              </Link>
+    <div className="space-y-6 pb-8">
+      {/* Page header with gradient accent */}
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-purple-500/10 to-pink-500/10 blur-3xl -z-10" />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 bg-gradient-to-br from-background/95 to-background/50 backdrop-blur-sm rounded-lg border shadow-lg hover:shadow-xl transition-all duration-300">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent animate-in slide-in-from-left duration-500">
+              Profile
+            </h1>
+            <p className="text-muted-foreground animate-in slide-in-from-left duration-500 delay-75">
+              Manage your public profile and settings
+            </p>
+          </div>
+          <div className="flex gap-2 animate-in slide-in-from-right duration-500">
+            {profileData?.slug && (
+              <Button 
+                variant="outline" 
+                asChild
+                className="group hover:border-primary hover:shadow-md transition-all duration-300"
+              >
+                <Link to={`/t/${profileData.slug}`} target="_blank" rel="noopener noreferrer">
+                  <Eye className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
+                  View Public Profile
+                </Link>
+              </Button>
+            )}
+            <Button 
+              onClick={() => setIsEditing(!isEditing)}
+              className="shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105"
+            >
+              {isEditing ? 'Cancel' : 'Edit Profile'}
             </Button>
-          )}
-          <Button onClick={() => setIsEditing(!isEditing)}>
-            {isEditing ? 'Cancel' : 'Edit Profile'}
-          </Button>
+          </div>
         </div>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="account">Account</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+        <TabsList className="bg-muted/50 p-1 backdrop-blur-sm border shadow-sm">
+          <TabsTrigger 
+            value="profile"
+            className="data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300 hover:scale-105"
+          >
+            Profile
+          </TabsTrigger>
+          <TabsTrigger 
+            value="account"
+            className="data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300 hover:scale-105"
+          >
+            Account
+          </TabsTrigger>
+          <TabsTrigger 
+            value="notifications"
+            className="data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300 hover:scale-105"
+          >
+            Notifications
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
           {!isEditing ? (
             // View Mode
-            <div className="grid gap-6 lg:grid-cols-3">
-              {/* Profile card */}
-              <Card className="lg:col-span-1">
+            <div className="grid gap-6 lg:grid-cols-3 animate-in fade-in duration-500">
+              {/* Profile card with enhanced styling */}
+              <Card className="lg:col-span-1 border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-2xl group">
                 <CardContent className="pt-6">
-                  <div className="flex flex-col items-center text-center">
-                    <div className="relative">
-                      <Avatar className="w-24 h-24">
+                  <div className="flex flex-col items-center text-center space-y-4">
+                    <div className="relative group-hover:scale-105 transition-transform duration-300">
+                      <div className="absolute -inset-1 bg-gradient-to-r from-primary via-purple-600 to-pink-600 rounded-full opacity-75 blur group-hover:opacity-100 transition duration-300" />
+                      <Avatar className="w-24 h-24 relative border-4 border-background shadow-xl">
                         <AvatarImage src={profileImage || profileData?.image} />
-                        <AvatarFallback className="text-2xl">
+                        <AvatarFallback className="text-2xl bg-gradient-to-br from-primary to-purple-600 text-white">
                           {getInitials(profile.name)}
                         </AvatarFallback>
                       </Avatar>
                     </div>
-                    <h2 className="mt-4 text-xl font-semibold">{profile.name}</h2>
-                    <p className="text-muted-foreground">{profile.email}</p>
-                    {profileData?.status === 'APPROVED' && (
-                      <Badge className="mt-2" variant="default">Verified Teacher</Badge>
-                    )}
+                    <div className="space-y-2">
+                      <h2 className="text-xl font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                        {profile.name}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">{profile.email}</p>
+                      {profileData?.status === 'APPROVED' && (
+                        <Badge className="mt-2 shadow-md hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-green-600 to-emerald-600 hover:scale-105" variant="default">
+                          ✓ Verified Teacher
+                        </Badge>
+                      )}
+                    </div>
 
-                    <div className="grid grid-cols-2 gap-4 mt-6 w-full">
-                      <div className="text-center p-3 rounded-lg bg-muted">
-                        <p className="text-2xl font-bold">{profile.stats.totalStudents}</p>
-                        <p className="text-xs text-muted-foreground">Students</p>
+                    <div className="grid grid-cols-2 gap-3 mt-6 w-full">
+                      <div className="group/stat text-center p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 hover:from-blue-500/20 hover:to-blue-600/20 border border-blue-500/20 transition-all duration-300 hover:scale-105 hover:shadow-lg cursor-pointer">
+                        <p className="text-2xl font-bold bg-gradient-to-br from-blue-600 to-blue-800 bg-clip-text text-transparent group-hover/stat:scale-110 transition-transform">
+                          {profile.stats.totalStudents}
+                        </p>
+                        <p className="text-xs text-muted-foreground font-medium">Students</p>
                       </div>
-                      <div className="text-center p-3 rounded-lg bg-muted">
-                        <p className="text-2xl font-bold">{profile.stats.totalClasses}</p>
-                        <p className="text-xs text-muted-foreground">Classes</p>
+                      <div className="group/stat text-center p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-purple-600/10 hover:from-purple-500/20 hover:to-purple-600/20 border border-purple-500/20 transition-all duration-300 hover:scale-105 hover:shadow-lg cursor-pointer">
+                        <p className="text-2xl font-bold bg-gradient-to-br from-purple-600 to-purple-800 bg-clip-text text-transparent group-hover/stat:scale-110 transition-transform">
+                          {profile.stats.totalClasses}
+                        </p>
+                        <p className="text-xs text-muted-foreground font-medium">Classes</p>
                       </div>
-                      <div className="text-center p-3 rounded-lg bg-muted">
-                        <p className="text-2xl font-bold">{profile.stats.avgRating}</p>
-                        <p className="text-xs text-muted-foreground">Rating</p>
+                      <div className="group/stat text-center p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-600/10 hover:from-amber-500/20 hover:to-amber-600/20 border border-amber-500/20 transition-all duration-300 hover:scale-105 hover:shadow-lg cursor-pointer">
+                        <p className="text-2xl font-bold bg-gradient-to-br from-amber-600 to-amber-800 bg-clip-text text-transparent group-hover/stat:scale-110 transition-transform">
+                          {profile.stats.avgRating}
+                        </p>
+                        <p className="text-xs text-muted-foreground font-medium">Rating</p>
                       </div>
-                      <div className="text-center p-3 rounded-lg bg-muted">
-                        <p className="text-2xl font-bold">{profile.stats.totalReviews}</p>
-                        <p className="text-xs text-muted-foreground">Reviews</p>
+                      <div className="group/stat text-center p-4 rounded-xl bg-gradient-to-br from-pink-500/10 to-pink-600/10 hover:from-pink-500/20 hover:to-pink-600/20 border border-pink-500/20 transition-all duration-300 hover:scale-105 hover:shadow-lg cursor-pointer">
+                        <p className="text-2xl font-bold bg-gradient-to-br from-pink-600 to-pink-800 bg-clip-text text-transparent group-hover/stat:scale-110 transition-transform">
+                          {profile.stats.totalReviews}
+                        </p>
+                        <p className="text-xs text-muted-foreground font-medium">Reviews</p>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Profile details */}
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Profile Information</CardTitle>
+              {/* Profile details with hover effects */}
+              <Card className="lg:col-span-2 border-2 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
+                <CardHeader className="space-y-1 pb-4">
+                  <CardTitle className="text-2xl">Profile Information</CardTitle>
                   <CardDescription>
                     This information will be displayed on your public profile
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Full Name</Label>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <p>{profile.name}</p>
+                    <div className="space-y-2 group/item p-4 rounded-lg hover:bg-muted/50 transition-all duration-300">
+                      <Label className="text-sm font-medium text-muted-foreground">Full Name</Label>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10 group-hover/item:bg-primary/20 transition-colors">
+                          <User className="h-4 w-4 text-primary" />
+                        </div>
+                        <p className="font-medium">{profile.name}</p>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Phone Number</Label>
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-muted-foreground" />
-                        <p>{profile.phone}</p>
+                    <div className="space-y-2 group/item p-4 rounded-lg hover:bg-muted/50 transition-all duration-300">
+                      <Label className="text-sm font-medium text-muted-foreground">Phone Number</Label>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-green-500/10 group-hover/item:bg-green-500/20 transition-colors">
+                          <Phone className="h-4 w-4 text-green-600" />
+                        </div>
+                        <p className="font-medium">{profile.phone}</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Location</Label>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <p>{profile.location}</p>
+                  <div className="space-y-2 group/item p-4 rounded-lg hover:bg-muted/50 transition-all duration-300">
+                    <Label className="text-sm font-medium text-muted-foreground">Location</Label>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-blue-500/10 group-hover/item:bg-blue-500/20 transition-colors">
+                        <MapPin className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <p className="font-medium">{profile.location}</p>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Bio</Label>
-                    <p className="text-sm">{profile.bio}</p>
+                  <div className="space-y-2 group/item p-4 rounded-lg hover:bg-muted/50 transition-all duration-300">
+                    <Label className="text-sm font-medium text-muted-foreground">Bio</Label>
+                    <p className="text-sm leading-relaxed">{profile.bio}</p>
                   </div>
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   <div className="space-y-4">
-                    <h3 className="font-medium">Professional Details</h3>
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <div className="h-1 w-1 rounded-full bg-primary animate-pulse" />
+                      Professional Details
+                    </h3>
                     <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label>Subjects</Label>
+                      <div className="space-y-3 p-4 rounded-lg border border-muted hover:border-primary/50 transition-all duration-300 hover:shadow-md">
+                        <Label className="text-sm font-medium text-muted-foreground">Subjects</Label>
                         <div className="flex flex-wrap gap-2">
-                          {profile.subjects.map((subject: string) => (
-                            <Badge key={subject} variant="secondary">
+                          {profile.subjects.map((subject: string, idx: number) => (
+                            <Badge 
+                              key={subject} 
+                              variant="secondary"
+                              className="hover:scale-110 transition-transform duration-200 cursor-pointer shadow-sm hover:shadow-md"
+                              style={{ animationDelay: `${idx * 50}ms` }}
+                            >
                               {subject}
                             </Badge>
                           ))}
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Qualifications</Label>
+                      <div className="space-y-3 p-4 rounded-lg border border-muted hover:border-purple-500/50 transition-all duration-300 hover:shadow-md">
+                        <Label className="text-sm font-medium text-muted-foreground">Qualifications</Label>
                         <div className="flex flex-wrap gap-2">
-                          {profile.qualifications.map((qualification: string) => (
-                            <Badge key={qualification} variant="outline">
+                          {profile.qualifications.map((qualification: string, idx: number) => (
+                            <Badge 
+                              key={qualification} 
+                              variant="outline"
+                              className="hover:scale-110 transition-transform duration-200 cursor-pointer hover:bg-purple-500/10 hover:border-purple-500"
+                              style={{ animationDelay: `${idx * 50}ms` }}
+                            >
                               {qualification}
                             </Badge>
                           ))}
                         </div>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Teaching Experience</Label>
-                      <div className="flex items-center gap-2">
-                        <Briefcase className="h-4 w-4 text-muted-foreground" />
-                        <p>{profile.experience}</p>
+                    <div className="space-y-2 group/item p-4 rounded-lg hover:bg-muted/50 transition-all duration-300">
+                      <Label className="text-sm font-medium text-muted-foreground">Teaching Experience</Label>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-amber-500/10 group-hover/item:bg-amber-500/20 transition-colors">
+                          <Briefcase className="h-4 w-4 text-amber-600" />
+                        </div>
+                        <p className="font-medium">{profile.experience}</p>
                       </div>
                     </div>
                   </div>
 
-                  <Separator />
+                  <Separator className="my-6" />
 
                   <div className="space-y-4">
-                    <h3 className="font-medium">Social Links</h3>
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <div className="h-1 w-1 rounded-full bg-primary animate-pulse" />
+                      Social Links
+                    </h3>
                     <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label>LinkedIn</Label>
+                      <div className="space-y-2 p-3 rounded-lg border border-muted hover:border-blue-500/50 hover:bg-blue-500/5 transition-all duration-300">
+                        <Label className="text-xs font-medium text-muted-foreground">LinkedIn</Label>
                         {profile.socialLinks.linkedin ? (
                           <a
                             href={profile.socialLinks.linkedin}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-primary hover:underline"
+                            className="flex items-center gap-2 text-primary hover:text-blue-600 group/link"
                           >
-                            <LinkIcon className="h-4 w-4" />
-                            {profile.socialLinks.linkedin}
+                            <LinkIcon className="h-4 w-4 group-hover/link:rotate-12 transition-transform" />
+                            <span className="text-sm truncate group-hover/link:underline">{profile.socialLinks.linkedin}</span>
                           </a>
                         ) : (
                           <p className="text-sm text-muted-foreground">Not set</p>
                         )}
                       </div>
-                      <div className="space-y-2">
-                        <Label>YouTube</Label>
+                      <div className="space-y-2 p-3 rounded-lg border border-muted hover:border-red-500/50 hover:bg-red-500/5 transition-all duration-300">
+                        <Label className="text-xs font-medium text-muted-foreground">YouTube</Label>
                         {profile.socialLinks.youtube ? (
                           <a
                             href={profile.socialLinks.youtube}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-primary hover:underline"
+                            className="flex items-center gap-2 text-primary hover:text-red-600 group/link"
                           >
-                            <LinkIcon className="h-4 w-4" />
-                            {profile.socialLinks.youtube}
+                            <LinkIcon className="h-4 w-4 group-hover/link:rotate-12 transition-transform" />
+                            <span className="text-sm truncate group-hover/link:underline">{profile.socialLinks.youtube}</span>
                           </a>
                         ) : (
                           <p className="text-sm text-muted-foreground">Not set</p>
                         )}
                       </div>
-                      <div className="space-y-2">
-                        <Label>Facebook</Label>
+                      <div className="space-y-2 p-3 rounded-lg border border-muted hover:border-blue-600/50 hover:bg-blue-600/5 transition-all duration-300">
+                        <Label className="text-xs font-medium text-muted-foreground">Facebook</Label>
                         {profile.socialLinks.facebook ? (
                           <a
                             href={profile.socialLinks.facebook}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-primary hover:underline"
+                            className="flex items-center gap-2 text-primary hover:text-blue-600 group/link"
                           >
-                            <LinkIcon className="h-4 w-4" />
-                            {profile.socialLinks.facebook}
+                            <LinkIcon className="h-4 w-4 group-hover/link:rotate-12 transition-transform" />
+                            <span className="text-sm truncate group-hover/link:underline">{profile.socialLinks.facebook}</span>
                           </a>
                         ) : (
                           <p className="text-sm text-muted-foreground">Not set</p>
                         )}
                       </div>
-                      <div className="space-y-2">
-                        <Label>Twitter</Label>
+                      <div className="space-y-2 p-3 rounded-lg border border-muted hover:border-sky-500/50 hover:bg-sky-500/5 transition-all duration-300">
+                        <Label className="text-xs font-medium text-muted-foreground">Twitter</Label>
                         {profile.socialLinks.twitter ? (
                           <a
                             href={profile.socialLinks.twitter}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-primary hover:underline"
+                            className="flex items-center gap-2 text-primary hover:text-sky-500 group/link"
                           >
-                            <LinkIcon className="h-4 w-4" />
-                            {profile.socialLinks.twitter}
+                            <LinkIcon className="h-4 w-4 group-hover/link:rotate-12 transition-transform" />
+                            <span className="text-sm truncate group-hover/link:underline">{profile.socialLinks.twitter}</span>
                           </a>
                         ) : (
                           <p className="text-sm text-muted-foreground">Not set</p>
                         )}
                       </div>
-                      <div className="space-y-2">
-                        <Label>Instagram</Label>
+                      <div className="space-y-2 p-3 rounded-lg border border-muted hover:border-pink-500/50 hover:bg-pink-500/5 transition-all duration-300">
+                        <Label className="text-xs font-medium text-muted-foreground">Instagram</Label>
                         {profile.socialLinks.instagram ? (
                           <a
                             href={profile.socialLinks.instagram}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-primary hover:underline"
+                            className="flex items-center gap-2 text-primary hover:text-pink-600 group/link"
                           >
-                            <LinkIcon className="h-4 w-4" />
-                            {profile.socialLinks.instagram}
+                            <LinkIcon className="h-4 w-4 group-hover/link:rotate-12 transition-transform" />
+                            <span className="text-sm truncate group-hover/link:underline">{profile.socialLinks.instagram}</span>
                           </a>
                         ) : (
                           <p className="text-sm text-muted-foreground">Not set</p>
                         )}
                       </div>
-                      <div className="space-y-2">
-                        <Label>WhatsApp</Label>
+                      <div className="space-y-2 p-3 rounded-lg border border-muted hover:border-green-500/50 hover:bg-green-500/5 transition-all duration-300">
+                        <Label className="text-xs font-medium text-muted-foreground">WhatsApp</Label>
                         {profile.socialLinks.whatsapp ? (
                           <a
                             href={`https://wa.me/${profile.socialLinks.whatsapp.replace('+', '')}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-primary hover:underline"
+                            className="flex items-center gap-2 text-primary hover:text-green-600 group/link"
                           >
-                            <LinkIcon className="h-4 w-4" />
-                            {profile.socialLinks.whatsapp}
+                            <LinkIcon className="h-4 w-4 group-hover/link:rotate-12 transition-transform" />
+                            <span className="text-sm truncate group-hover/link:underline">{profile.socialLinks.whatsapp}</span>
                           </a>
                         ) : (
                           <p className="text-sm text-muted-foreground">Not set</p>
@@ -918,62 +1166,124 @@ export default function TeacherProfile() {
             </div>
           ) : (
             // Edit Mode - Comprehensive Form
-            <form onSubmit={handleSubmit(onSubmit)}>
+            <form onSubmit={handleSubmit(onSubmit)} className="animate-in fade-in duration-500">
               <Tabs defaultValue="basic" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                  <TabsTrigger value="education">Education & Subjects</TabsTrigger>
-                  <TabsTrigger value="teaching">Teaching Details</TabsTrigger>
-                  <TabsTrigger value="pricing">Pricing & Availability</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1 backdrop-blur-sm border shadow-sm">
+                  <TabsTrigger 
+                    value="basic"
+                    className="data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300 hover:scale-105"
+                  >
+                    Basic Info
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="education"
+                    className="data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300 hover:scale-105"
+                  >
+                    Education & Subjects
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="teaching"
+                    className="data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300 hover:scale-105"
+                  >
+                    Teaching Details
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="pricing"
+                    className="data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300 hover:scale-105"
+                  >
+                    Pricing & Availability
+                  </TabsTrigger>
                 </TabsList>
 
                 {/* Basic Info Tab */}
                 <TabsContent value="basic" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Profile Photo</CardTitle>
+                  <Card className="border-2 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
+                    <CardHeader className="bg-gradient-to-r from-primary/5 to-purple-500/5">
+                      <CardTitle className="flex items-center gap-2">
+                        <Upload className="h-5 w-5 text-primary" />
+                        Profile Photo
+                      </CardTitle>
                       <CardDescription>
                         Upload a clear profile photo. You can crop and adjust it before saving. Recommended: Square image, at least 400x400px, max 5MB
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                        <div className="relative">
-                          <Avatar className="w-32 h-32 border-2 border-border">
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 mt-5">
+                        <div className="relative group cursor-pointer flex-shrink-0 ">
+                          <div className="absolute -inset-1.5 bg-gradient-to-r from-primary via-purple-600 to-pink-600 rounded-full opacity-40 group-hover:opacity-75 blur-md transition duration-300" />
+                          <Avatar className="w-32 h-32 sm:w-36 sm:h-36 border-3 border-background relative shadow-xl group-hover:scale-105 transition-transform duration-300 ease-out">
                             <AvatarImage src={profileImage || undefined} className="object-cover" />
-                            <AvatarFallback className="text-3xl">
+                            <AvatarFallback className="text-4xl bg-gradient-to-br from-primary to-purple-600 text-white">
                               {user ? getInitials(user.name) : 'T'}
                             </AvatarFallback>
                           </Avatar>
                           {isUploading && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full">
-                              <div className="text-center">
-                                <div className="text-sm font-medium">{uploadProgress}%</div>
-                                <div className="text-xs text-muted-foreground">Uploading...</div>
+                            <div className="absolute inset-0 flex items-center justify-center bg-background/95 rounded-full backdrop-blur-md mt-5">
+                              <div className="relative w-16 h-16">
+                                {/* Circular progress ring */}
+                                <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                                  <circle
+                                    cx="40"
+                                    cy="40"
+                                    r="32"
+                                    stroke="currentColor"
+                                    strokeWidth="6"
+                                    fill="none"
+                                    className="text-muted/20"
+                                  />
+                                  <circle
+                                    cx="40"
+                                    cy="40"
+                                    r="32"
+                                    stroke="url(#gradient)"
+                                    strokeWidth="6"
+                                    fill="none"
+                                    strokeLinecap="round"
+                                    strokeDasharray={`${2 * Math.PI * 32}`}
+                                    strokeDashoffset={`${2 * Math.PI * 32 * (1 - uploadProgress / 100)}`}
+                                    className="transition-all duration-500 ease-out"
+                                  />
+                                  <defs>
+                                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                      <stop offset="0%" stopColor="#3b82f6" />
+                                      <stop offset="50%" stopColor="#8b5cf6" />
+                                      <stop offset="100%" stopColor="#ec4899" />
+                                    </linearGradient>
+                                  </defs>
+                                </svg>
+                                {/* Percentage text */}
+                                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                  <div className="text-lg font-bold bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                                    {uploadProgress}%
+                                  </div>
+                                  <div className="text-[9px] text-muted-foreground font-medium">Uploading</div>
+                                </div>
                               </div>
                             </div>
                           )}
                         </div>
-                        <div className="space-y-3 flex-1 w-full">
+                        <div className="space-y-2.5 w-full">
                           <div
-                            className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
+                            className={`border-2 border-dashed rounded-lg p-3 transition-all duration-300 ${
                               isDragging
-                                ? 'border-primary bg-primary/5'
-                                : 'border-border hover:border-primary/50'
+                                ? 'border-primary bg-primary/10 scale-[1.02] shadow-lg'
+                                : 'border-border hover:border-primary/50 hover:bg-primary/5'
                             }`}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
                             onDrop={handleDrop}
                           >
-                            <div className="space-y-2 text-center">
-                              <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
+                            <div className="space-y-1.5 text-center">
+                              <Upload className={`mx-auto h-7 w-7 transition-all duration-300 ${isDragging ? 'text-primary scale-110' : 'text-muted-foreground'}`} />
                               <div className="space-y-1">
                                 <Label htmlFor="image-upload" className="cursor-pointer">
                                   <Button 
                                     type="button" 
                                     variant="outline" 
+                                    size="sm"
                                     disabled={isUploading}
                                     asChild
+                                    className="shadow-sm hover:shadow-md transition-all hover:scale-105"
                                   >
                                     <span>
                                       {imageFile ? 'Change Photo' : 'Upload Photo'}
@@ -988,43 +1298,80 @@ export default function TeacherProfile() {
                                   className="hidden"
                                   disabled={isUploading}
                                 />
-                                <p className="text-xs text-muted-foreground">
-                                  or drag and drop here
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  You'll be able to crop it before saving
+                                <p className="text-[11px] text-muted-foreground">
+                                  or drag and drop
                                 </p>
                               </div>
                             </div>
                           </div>
                           
                           {imageFile && (
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-sm">
-                                <span className="text-muted-foreground">Selected:</span>
-                                <span className="font-medium">{imageFile.name}</span>
-                                <span className="text-muted-foreground">
-                                  ({(imageFile.size / 1024 / 1024).toFixed(2)} MB)
-                                </span>
+                            <div className="relative overflow-hidden space-y-2 p-2.5 bg-gradient-to-br from-primary/5 via-purple-500/5 to-pink-500/5 rounded-lg border border-primary/20 shadow-sm animate-in slide-in-from-top duration-500">
+                              {/* Decorative background gradient */}
+                              <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-primary/10 to-purple-600/10 rounded-full blur-xl -z-10" />
+                              
+                              <div className="flex items-center gap-2">
+                                <div className="relative flex-shrink-0">
+                                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-sm">
+                                    <Upload className="h-4 w-4 text-white" />
+                                  </div>
+                                  {uploadProgress > 0 && uploadProgress < 100 && (
+                                    <div className="absolute -inset-1 bg-gradient-to-r from-primary to-purple-600 rounded-lg opacity-50 animate-pulse" />
+                                  )}
+                                </div>
+                                
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[11px] font-semibold truncate">{imageFile.name}</span>
+                                    {uploadProgress === 0 && (
+                                      <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-gradient-to-r from-green-600 to-emerald-600">
+                                        Ready
+                                      </Badge>
+                                    )}
+                                    {uploadProgress > 0 && uploadProgress < 100 && (
+                                      <Badge variant="default" className="text-[10px] px-1.5 py-0 bg-gradient-to-r from-blue-600 to-purple-600 animate-pulse">
+                                        Uploading...
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground mt-0.5">
+                                    <span className="font-medium">{(imageFile.size / 1024 / 1024).toFixed(2)} MB</span>
+                                    {uploadProgress > 0 && uploadProgress < 100 && (
+                                      <>
+                                        <span>•</span>
+                                        <span className="font-semibold text-primary">{uploadProgress}% completed</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
+                              
                               {uploadProgress > 0 && uploadProgress < 100 && (
-                                <div className="w-full bg-secondary rounded-full h-2">
+                                <div className="w-full h-1 bg-secondary/50 rounded-full overflow-hidden shadow-inner">
                                   <div
-                                    className="bg-primary h-2 rounded-full transition-all duration-300"
+                                    className="h-full bg-gradient-to-r from-primary via-purple-600 to-pink-600 rounded-full transition-all duration-500 ease-out shadow-sm"
                                     style={{ width: `${uploadProgress}%` }}
-                                  />
+                                  >
+                                    <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                                  </div>
+                                  {/* Shimmer effect */}
+                                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
                                 </div>
                               )}
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleImageRemove}
-                                disabled={isUploading}
-                              >
-                                <X className="mr-2 h-4 w-4" />
-                                Remove
-                              </Button>
+                              
+                              {uploadProgress === 0 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={handleImageRemove}
+                                  disabled={isUploading}
+                                  className="w-full h-6 text-[11px] hover:bg-destructive/10 hover:text-destructive transition-all duration-300 group/remove"
+                                >
+                                  <X className="mr-1 h-3 w-3 group-hover/remove:rotate-90 transition-transform" />
+                                  Remove Photo
+                                </Button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1032,9 +1379,12 @@ export default function TeacherProfile() {
                     </CardContent>
                   </Card>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Basic Information</CardTitle>
+                  <Card className="border-2 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
+                    <CardHeader className="bg-gradient-to-r from-blue-500/5 to-cyan-500/5">
+                      <CardTitle className="flex items-center gap-2">
+                        <User className="h-5 w-5 text-blue-600" />
+                        Basic Information
+                      </CardTitle>
                       <CardDescription>Tell students about yourself</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -1091,40 +1441,60 @@ export default function TeacherProfile() {
 
                 {/* Education & Subjects Tab */}
                 <TabsContent value="education" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Education Level & Subjects</CardTitle>
+                  <Card className="border-2 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
+                    <CardHeader className="bg-gradient-to-r from-purple-500/5 to-pink-500/5">
+                      <CardTitle className="flex items-center gap-2">
+                        <Briefcase className="h-5 w-5 text-purple-600" />
+                        Education Level & Subjects
+                      </CardTitle>
                       <CardDescription>Select your education level and subjects</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="space-y-2">
-                        <Label>Education Levels *</Label>
+                      <div className="space-y-3">
+                        <Label className="text-base font-semibold">Education Levels *</Label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                           {Object.keys(educationLevels).map((level) => (
-                            <div key={level} className="flex items-center space-x-2 p-3 border rounded-md">
+                            <div 
+                              key={level} 
+                              className={`flex items-center space-x-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-md group ${
+                                watchedEducationLevels?.some(el => el.level === level) 
+                                  ? 'border-primary bg-primary/5 shadow-md' 
+                                  : 'border-muted hover:border-primary/50'
+                              }`}
+                            >
                               <Checkbox
                                 id={`level-${level}`}
                                 checked={watchedEducationLevels?.some(el => el.level === level) || false}
                                 onCheckedChange={() => handleEducationLevelToggle(level as 'PRIMARY' | 'OL' | 'AL')}
+                                className="group-hover:scale-110 transition-transform"
                               />
-                              <Label htmlFor={`level-${level}`} className="cursor-pointer flex-1">
+                              <Label htmlFor={`level-${level}`} className="cursor-pointer flex-1 font-medium">
                                 {level === 'PRIMARY' ? 'Primary' : level === 'OL' ? 'O/L (Ordinary Level)' : 'A/L (Advanced Level)'}
                               </Label>
                             </div>
                           ))}
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground flex items-center gap-2">
+                          <div className="w-1 h-1 rounded-full bg-primary" />
                           Select all education levels you teach. Each level will have its own subjects and grades.
                         </p>
                         {errors.educationLevels && (
-                          <p className="text-sm text-destructive">{errors.educationLevels.message}</p>
+                          <p className="text-sm text-destructive flex items-center gap-2 animate-in slide-in-from-left">
+                            <X className="h-4 w-4" />
+                            {errors.educationLevels.message}
+                          </p>
                         )}
                       </div>
 
-                      {watchedEducationLevels?.map((eduLevel) => (
-                        <Card key={eduLevel.level} className="border-l-4 border-l-primary">
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-lg">
+                      {watchedEducationLevels?.map((eduLevel, idx) => (
+                        <Card 
+                          key={eduLevel.level} 
+                          className="border-l-4 border-l-primary shadow-md hover:shadow-xl transition-all duration-300 animate-in slide-in-from-left"
+                          style={{ animationDelay: `${idx * 100}ms` }}
+                        >
+                          <CardHeader className="pb-3 bg-gradient-to-r from-primary/5 to-transparent">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                               {eduLevel.level === 'PRIMARY' ? 'Primary' : eduLevel.level === 'OL' ? 'O/L (Ordinary Level)' : 'A/L (Advanced Level)'}
                             </CardTitle>
                             <CardDescription>
@@ -1167,7 +1537,7 @@ export default function TeacherProfile() {
                                       htmlFor={`grade-${eduLevel.level}-${grade}`}
                                       className="text-sm font-normal cursor-pointer"
                                     >
-                                      Grade {grade}
+                                      Grade {grade} ({educationLevelLabels[eduLevel.level] ?? eduLevel.level})
                                     </Label>
                                   </div>
                                 ))}
@@ -1182,44 +1552,94 @@ export default function TeacherProfile() {
 
                 {/* Teaching Details Tab */}
                 <TabsContent value="teaching" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Teaching Details</CardTitle>
+                  <Card className="border-2 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
+                    <CardHeader className="bg-gradient-to-r from-green-500/5 to-emerald-500/5">
+                      <CardTitle className="flex items-center gap-2">
+                        <Briefcase className="h-5 w-5 text-green-600" />
+                        Teaching Details
+                      </CardTitle>
                       <CardDescription>How do you teach and what are your qualifications?</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="space-y-2">
-                        <Label>Teaching Mode *</Label>
+                      <div className="space-y-3">
+                        <Label className="text-base font-semibold">Teaching Mode *</Label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          {teachingModes.map((mode) => (
-                            <div key={mode} className="flex items-center space-x-2 p-3 border rounded-md">
+                          {teachingModes.map((mode, idx) => (
+                            <div 
+                              key={mode} 
+                              className={`flex items-center space-x-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-md group ${
+                                watchedTeachingModes?.includes(mode)
+                                  ? 'border-primary bg-primary/5 shadow-md'
+                                  : 'border-muted hover:border-primary/50'
+                              }`}
+                              style={{ animationDelay: `${idx * 50}ms` }}
+                            >
                               <Checkbox
                                 id={`mode-${mode}`}
                                 checked={watchedTeachingModes?.includes(mode) || false}
                                 onCheckedChange={() => handleTeachingModeToggle(mode)}
+                                className="group-hover:scale-110 transition-transform"
                               />
-                              <Label htmlFor={`mode-${mode}`} className="cursor-pointer flex-1">
+                              <Label htmlFor={`mode-${mode}`} className="cursor-pointer flex-1 font-medium">
                                 {mode}
                               </Label>
                             </div>
                           ))}
                         </div>
                         {errors.teachingModes && (
-                          <p className="text-sm text-destructive">{errors.teachingModes.message}</p>
+                          <p className="text-sm text-destructive flex items-center gap-2 animate-in slide-in-from-left">
+                            <X className="h-4 w-4" />
+                            {errors.teachingModes.message}
+                          </p>
                         )}
                       </div>
 
                       {watchedTeachingModes?.includes('Physical class') && (
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-4 md:grid-cols-3">
                           <div className="space-y-2">
-                            <Label htmlFor="city">City / District</Label>
-                            <Input id="city" {...register('city')} placeholder="e.g., Colombo" />
+                            <Label htmlFor="state">Province</Label>
+                            <SearchableSelect
+                              id="state"
+                              value={watch('state') || ''}
+                              onValueChange={(value) => {
+                                setValue('state', value)
+                                setValue('district', '')
+                                setValue('city', '')
+                              }}
+                              options={locationOptions.provinces}
+                              placeholder="Select province"
+                              searchPlaceholder="Search provinces..."
+                              emptyMessage="No province found."
+                            />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="state">State / Province</Label>
-                            <Input id="state" {...register('state')} placeholder="e.g., Western Province" />
+                            <Label htmlFor="district">District</Label>
+                            <SearchableSelect
+                              id="district"
+                              value={watch('district') || ''}
+                              onValueChange={(value) => {
+                                setValue('district', value)
+                                setValue('city', '')
+                              }}
+                              options={locationOptions.districts}
+                              placeholder="Select district"
+                              searchPlaceholder="Search districts..."
+                              emptyMessage="No district found."
+                            />
                           </div>
-                          <div className="space-y-2 md:col-span-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="city">City</Label>
+                            <SearchableSelect
+                              id="city"
+                              value={watch('city') || ''}
+                              onValueChange={(value) => setValue('city', value)}
+                              options={locationOptions.cities}
+                              placeholder="Select city"
+                              searchPlaceholder="Search cities..."
+                              emptyMessage="No city found."
+                            />
+                          </div>
+                          <div className="space-y-2 md:col-span-3">
                             <Label htmlFor="address">Address (Optional)</Label>
                             <Input id="address" {...register('address')} placeholder="Full address" />
                           </div>
@@ -1399,10 +1819,13 @@ export default function TeacherProfile() {
 
                 {/* Pricing & Availability Tab */}
                 <TabsContent value="pricing" className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Pricing</CardTitle>
-                      <CardDescription>Set your teaching fees</CardDescription>
+                  <Card className="border-2 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
+                    <CardHeader className="bg-gradient-to-r from-amber-500/5 to-orange-500/5">
+                      <CardTitle className="flex items-center gap-2">
+                        <span className="text-2xl">💰</span>
+                        Pricing
+                      </CardTitle>
+                      <CardDescription>Set your teaching fees. Optionally set different prices by grade.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid gap-4 md:grid-cols-3">
@@ -1434,59 +1857,284 @@ export default function TeacherProfile() {
                           />
                         </div>
                       </div>
+                      <div className="flex items-center space-x-2 pt-2">
+                        <Checkbox
+                          id="usePriceByGrade"
+                          checked={watch('usePriceByGrade') || false}
+                          onCheckedChange={(checked) => {
+                            setValue('usePriceByGrade', !!checked)
+                            if (checked && (watch('priceByGrade')?.length === 0 || !watch('priceByGrade')?.length) && uniqueGrades.length > 0) {
+                              setValue('priceByGrade', uniqueGrades.map((grade) => ({ grade, subject: '', hourlyRate: '', monthlyFee: '', groupClassPrice: '' })))
+                            }
+                          }}
+                        />
+                        <Label htmlFor="usePriceByGrade" className="cursor-pointer">
+                          Set different prices by grade (optional)
+                        </Label>
+                      </div>
+                      {watch('usePriceByGrade') && uniqueGrades.length > 0 && (
+                        <div className="space-y-3 pt-2 border-t">
+                          <p className="text-sm text-muted-foreground">Override price for specific grade (and optional subject). Leave blank to use default.</p>
+                          <div className="grid gap-3">
+                            {uniqueGrades.map((grade) => {
+                              const rowIdx = watch('priceByGrade')?.findIndex((r) => r.grade === grade) ?? -1
+                              if (rowIdx < 0) return null
+                              return (
+                                <div key={grade} className="flex flex-wrap items-center gap-3 p-3 rounded-md bg-muted/50">
+                                  <span className="font-medium min-w-[6rem]">
+                                    Grade {grade}
+                                    {getEducationLevelForGrade(grade) && (
+                                      <span className="text-muted-foreground font-normal"> ({getEducationLevelForGrade(grade)})</span>
+                                    )}
+                                  </span>
+                                  {uniqueSubjects.length > 0 && (
+                                    <Select
+                                      value={watch(`priceByGrade.${rowIdx}.subject`) || 'all'}
+                                      onValueChange={(val) => setValue(`priceByGrade.${rowIdx}.subject`, val === 'all' ? '' : val)}
+                                    >
+                                      <SelectTrigger className="w-40">
+                                        <SelectValue placeholder="Subject (optional)" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="all">All subjects</SelectItem>
+                                        {uniqueSubjects.map((sub) => (
+                                          <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  )}
+                                  <Input
+                                    type="number"
+                                    placeholder="Hourly (LKR)"
+                                    className="w-32"
+                                    {...register(`priceByGrade.${rowIdx}.hourlyRate`)}
+                                  />
+                                  <Input
+                                    type="number"
+                                    placeholder="Monthly (LKR)"
+                                    className="w-32"
+                                    {...register(`priceByGrade.${rowIdx}.monthlyFee`)}
+                                  />
+                                  <Input
+                                    type="number"
+                                    placeholder="Group (LKR)"
+                                    className="w-32"
+                                    {...register(`priceByGrade.${rowIdx}.groupClassPrice`)}
+                                  />
+                                  <input type="hidden" {...register(`priceByGrade.${rowIdx}.grade`)} value={grade} />
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Availability</CardTitle>
-                      <CardDescription>When are you available for classes?</CardDescription>
+                  <Card className="border-2 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
+                    <CardHeader className="bg-gradient-to-r from-indigo-500/5 to-purple-500/5">
+                      <CardTitle className="flex items-center gap-2">
+                        <span className="text-2xl">📅</span>
+                        Availability
+                      </CardTitle>
+                      <CardDescription>
+                        Add time slots per day. Each slot can have different grades (e.g. multiple classes per day for different grades).
+                      </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      {daysOfWeek.map((day) => (
-                        <div key={day} className="flex items-center gap-4 p-3 border rounded-md">
-                          <div className="flex items-center space-x-2 w-32">
-                            <Checkbox
-                              id={`day-${day}`}
-                              checked={watch(`availability.${day}.enabled`) || false}
-                              onCheckedChange={(checked) => {
-                                setValue(`availability.${day}.enabled`, checked as boolean)
-                              }}
-                            />
-                            <Label htmlFor={`day-${day}`} className="cursor-pointer">
-                              {day}
-                            </Label>
-                          </div>
-                          {watch(`availability.${day}.enabled`) && (
-                            <div className="flex items-center gap-2 flex-1">
-                              <Input
-                                type="time"
-                                placeholder="Start time"
-                                {...register(`availability.${day}.startTime`)}
+                      {daysOfWeek.map((day, idx) => {
+                        const dayEnabled = watch(`availability.${day}.enabled`) || false
+                        const slots = watch(`availability.${day}.slots`) || []
+                        return (
+                          <div 
+                            key={day} 
+                            className={`border-2 rounded-xl p-4 space-y-3 transition-all duration-300 hover:shadow-md ${
+                              dayEnabled ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/30'
+                            }`}
+                            style={{ animationDelay: `${idx * 50}ms` }}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <Checkbox
+                                id={`day-${day}`}
+                                checked={dayEnabled}
+                                onCheckedChange={(checked) => {
+                                  setValue(`availability.${day}.enabled`, checked as boolean)
+                                  if (checked && (!slots || slots.length === 0)) {
+                                    setValue(`availability.${day}.slots`, [{ startTime: '', endTime: '', grades: [], subjects: [] }])
+                                  }
+                                }}
+                                className="scale-110"
                               />
-                              <span>to</span>
-                              <Input
-                                type="time"
-                                placeholder="End time"
-                                {...register(`availability.${day}.endTime`)}
-                              />
+                              <Label htmlFor={`day-${day}`} className="cursor-pointer font-semibold text-base flex-1">
+                                {day}
+                              </Label>
                             </div>
-                          )}
-                        </div>
-                      ))}
+                            {dayEnabled && (
+                              <div className="pl-6 space-y-2">
+                                {(slots as { startTime?: string; endTime?: string; grades?: string[]; subjects?: string[] }[]).map((_, slotIdx) => (
+                                  <div key={slotIdx} className="flex flex-wrap items-center gap-2 p-2 rounded bg-muted/50">
+                                    <div className="relative flex items-center w-fit">
+                                      <div className="relative w-[9rem]">
+                                        <Input
+                                          type="time"
+                                          className="w-full max-w-[9rem] pr-9 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
+                                          {...register(`availability.${day}.slots.${slotIdx}.startTime`)}
+                                        />
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                                          onClick={(e) => {
+                                            const wrapper = (e.currentTarget as HTMLElement).parentElement
+                                            const input = wrapper?.querySelector?.('input[type="time"]') as HTMLInputElement | null
+                                            if (input) {
+                                              try {
+                                                (input as HTMLInputElement & { showPicker?: () => void }).showPicker?.()
+                                              } catch {
+                                                input.focus()
+                                              }
+                                              input.focus()
+                                            }
+                                          }}
+                                          title="Select start time"
+                                        >
+                                          <Clock className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <span className="text-muted-foreground">to</span>
+                                    <div className="relative flex items-center w-fit">
+                                      <div className="relative w-[9rem]">
+                                        <Input
+                                          type="time"
+                                          className="w-full max-w-[9rem] pr-9 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
+                                          {...register(`availability.${day}.slots.${slotIdx}.endTime`)}
+                                        />
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                                          onClick={(e) => {
+                                            const wrapper = (e.currentTarget as HTMLElement).parentElement
+                                            const input = wrapper?.querySelector?.('input[type="time"]') as HTMLInputElement | null
+                                            if (input) {
+                                              try {
+                                                (input as HTMLInputElement & { showPicker?: () => void }).showPicker?.()
+                                              } catch {
+                                                input.focus()
+                                              }
+                                              input.focus()
+                                            }
+                                          }}
+                                          title="Select end time"
+                                        >
+                                          <Clock className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <span className="text-muted-foreground text-sm">Grades:</span>
+                                    <div className="flex flex-wrap gap-1">
+                                      {uniqueGrades.map((g) => {
+                                        const grades = watch(`availability.${day}.slots.${slotIdx}.grades`) || []
+                                        const checked = grades.includes(g)
+                                        return (
+                                          <label key={g} className="flex items-center gap-1 text-sm cursor-pointer">
+                                            <Checkbox
+                                              checked={checked}
+                                              onCheckedChange={(c) => {
+                                                const current = watch(`availability.${day}.slots.${slotIdx}.grades`) || []
+                                                const next = c
+                                                  ? [...current.filter((x: string) => x !== g), g]
+                                                  : current.filter((x: string) => x !== g)
+                                                setValue(`availability.${day}.slots.${slotIdx}.grades`, next)
+                                              }}
+                                            />
+                                            <span>{g}{getEducationLevelForGrade(g) ? ` (${getEducationLevelForGrade(g)})` : ''}</span>
+                                          </label>
+                                        )
+                                      })}
+                                    </div>
+                                    {uniqueSubjects.length > 0 && (
+                                      <>
+                                        <span className="text-muted-foreground text-sm">Subjects:</span>
+                                        <div className="flex flex-wrap gap-1">
+                                          {uniqueSubjects.map((sub) => {
+                                            const subjects = watch(`availability.${day}.slots.${slotIdx}.subjects`) || []
+                                            const checked = subjects.includes(sub)
+                                            return (
+                                              <label key={sub} className="flex items-center gap-1 text-sm cursor-pointer">
+                                                <Checkbox
+                                                  checked={checked}
+                                                  onCheckedChange={(c) => {
+                                                    const current = watch(`availability.${day}.slots.${slotIdx}.subjects`) || []
+                                                    const next = c
+                                                      ? [...current.filter((x: string) => x !== sub), sub]
+                                                      : current.filter((x: string) => x !== sub)
+                                                    setValue(`availability.${day}.slots.${slotIdx}.subjects`, next)
+                                                  }}
+                                                />
+                                                <span>{sub}</span>
+                                              </label>
+                                            )
+                                          })}
+                                        </div>
+                                      </>
+                                    )}
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                      onClick={() => {
+                                        const next = slots.filter((_: unknown, i: number) => i !== slotIdx)
+                                        setValue(`availability.${day}.slots`, next)
+                                      }}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ))}
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    const current = watch(`availability.${day}.slots`) || []
+                                    setValue(`availability.${day}.slots`, [...current, { startTime: '', endTime: '', grades: [], subjects: [] }])
+                                  }}
+                                >
+                                  <Plus className="h-4 w-4 mr-1" />
+                                  Add slot
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
                     </CardContent>
                   </Card>
                 </TabsContent>
               </Tabs>
 
-              <div className="flex justify-end gap-4 pt-6">
-                <Button type="button" variant="outline" onClick={() => {
-                  setIsEditing(false)
-                  loadProfile()
-                }}>
+              <div className="flex justify-end gap-4 pt-6 pb-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsEditing(false)
+                    loadProfile()
+                  }}
+                  className="hover:scale-105 transition-all duration-300 hover:shadow-md"
+                >
                   Cancel
                 </Button>
-                <Button type="submit" isLoading={isLoading}>
+                <Button 
+                  type="submit" 
+                  isLoading={isLoading}
+                  className="shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
+                >
                   <Save className="mr-2 h-4 w-4" />
                   Save Profile
                 </Button>
@@ -1496,9 +2144,12 @@ export default function TeacherProfile() {
         </TabsContent>
 
         <TabsContent value="account">
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Settings</CardTitle>
+          <Card className="border-2 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
+            <CardHeader className="bg-gradient-to-r from-red-500/5 to-orange-500/5">
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5 text-red-600" />
+                Account Settings
+              </CardTitle>
               <CardDescription>Manage your account security and preferences</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -1510,49 +2161,63 @@ export default function TeacherProfile() {
                 </p>
               </div>
 
-              <Separator />
+              <Separator className="my-6" />
 
-              <div className="space-y-4">
+              <div className="space-y-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                 <h3 className="font-medium">Change Password</h3>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="currentPassword">Current Password</Label>
-                    <Input id="currentPassword" type="password" />
+                    <Input id="currentPassword" type="password" className="hover:border-primary/50 transition-colors" />
                   </div>
                   <div></div>
                   <div className="space-y-2">
                     <Label htmlFor="newPassword">New Password</Label>
-                    <Input id="newPassword" type="password" />
+                    <Input id="newPassword" type="password" className="hover:border-primary/50 transition-colors" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                    <Input id="confirmPassword" type="password" />
+                    <Input id="confirmPassword" type="password" className="hover:border-primary/50 transition-colors" />
                   </div>
                 </div>
-                <Button>Update Password</Button>
+                <Button className="hover:scale-105 transition-all duration-300 shadow-md hover:shadow-lg">
+                  Update Password
+                </Button>
               </div>
 
-              <Separator />
+              <Separator className="my-6" />
 
-              <div className="space-y-4">
-                <h3 className="font-medium text-destructive">Danger Zone</h3>
+              <div className="space-y-4 p-4 rounded-lg border-2 border-destructive/20 bg-destructive/5 hover:bg-destructive/10 transition-colors">
+                <h3 className="font-medium text-destructive flex items-center gap-2">
+                  <span className="text-lg">⚠️</span>
+                  Danger Zone
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   Once you delete your account, there is no going back. Please be certain.
                 </p>
-                <Button variant="destructive">Delete Account</Button>
+                <Button variant="destructive" className="hover:scale-105 transition-all duration-300 shadow-md hover:shadow-lg">
+                  Delete Account
+                </Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
+          <Card className="border-2 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
+            <CardHeader className="bg-gradient-to-r from-blue-500/5 to-indigo-500/5">
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-2xl">🔔</span>
+                Notification Preferences
+              </CardTitle>
               <CardDescription>Choose how you want to be notified</CardDescription>
             </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Notification settings coming soon...</p>
+            <CardContent className="py-8">
+              <div className="text-center space-y-3 py-12">
+                <div className="text-6xl mb-4">🚧</div>
+                <p className="text-muted-foreground text-lg">Notification settings coming soon...</p>
+                <p className="text-sm text-muted-foreground">We're working on bringing you customizable notification preferences</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

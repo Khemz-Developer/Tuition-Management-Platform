@@ -11,6 +11,7 @@ import { UploadModule } from './upload/upload.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { HealthModule } from './health/health.module';
+import { LocationsModule } from './locations/locations.module';
 import { ConfigService } from '@nestjs/config';
 
 @Module({
@@ -53,6 +54,7 @@ import { ConfigService } from '@nestjs/config';
     UploadModule,
     MessagingModule,
     NotificationsModule,
+    LocationsModule,
   ],
 })
 export class AppModule {}

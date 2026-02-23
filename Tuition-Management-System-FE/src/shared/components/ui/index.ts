@@ -45,6 +45,7 @@ export {
   SelectItem,
   SelectSeparator,
 } from './select'
+export { SearchableSelect } from './searchable-select'
 export { Badge, badgeVariants } from './badge'
 export { Separator } from './separator'
 export { Skeleton } from './skeleton'

@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui
 import { useAuth } from '@/shared/hooks/useAuth'
 import { useToast } from '@/shared/components/ui/use-toast'
 import { getInitials } from '@/lib/utils'
-import { get, put } from '@/shared/services/api'
+import api, { get, put } from '@/shared/services/api'
 import { ImageCropper } from '@/shared/components/ImageCropper'
 import type { StudentProfile } from '@/shared/types/user.types'
 import { Camera, Save, Loader2 } from 'lucide-react'
@@ -224,6 +224,15 @@ export default function StudentProfile() {
       let imageUrl: string | null = profileImage || null
       if (imageFile) {
         try {
+          if (!localStorage.getItem('accessToken')) {
+            toast({
+              title: 'Session expired',
+              description: 'Please sign in again to upload images',
+              variant: 'destructive',
+            })
+            setIsLoading(false)
+            return
+          }
           setIsUploading(true)
           setUploadProgress(0)
           
@@ -231,18 +240,11 @@ export default function StudentProfile() {
           formData.append('file', imageFile)
           formData.append('folder', 'student-profiles')
           
-          // Use axios directly for upload progress
-          const axios = (await import('axios')).default
-          const token = localStorage.getItem('accessToken')
-          const API_URL = (import.meta.env?.VITE_API_URL as string) || 'http://localhost:3000/api'
-          
-          const uploadResult = await axios.post<{ success: boolean; data: { url: string; publicId: string; message?: string } }>(
-            `${API_URL}/upload/image`,
+          // Use shared api instance so auth token and 401 refresh are applied
+          const uploadResult = await api.post<{ success: boolean; data: { url: string; publicId: string; message?: string } }>(
+            '/upload/image',
             formData,
             {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
               onUploadProgress: (progressEvent) => {
                 if (progressEvent.total) {
                   const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)

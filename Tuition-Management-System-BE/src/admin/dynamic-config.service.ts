@@ -7,36 +7,90 @@ import { DynamicConfig, DynamicConfigDocument } from '../models/dynamic-config.s
 export class DynamicConfigService {
   constructor(
     @InjectModel(DynamicConfig.name) private dynamicConfigModel: Model<DynamicConfigDocument>,
-  ) {}
+  ) { }
 
   async getConfig(key: string = 'default'): Promise<DynamicConfigDocument> {
     let config = await this.dynamicConfigModel.findOne({ key, active: true });
-    
+
     if (!config) {
       // Create default configuration if it doesn't exist
       const newConfig = await this.createDefaultConfig(key);
       config = await this.dynamicConfigModel.findOne({ key, active: true });
+    } else {
+      // Check for missing settings and populate defaults (migration)
+      let updated = false;
+
+      if (!config.generalSettings) {
+        config.generalSettings = {
+          platformName: 'Tuition Management System',
+          supportEmail: 'support@example.com',
+          description: 'A comprehensive platform for managing tuition classes and students.',
+          teacherAutoApproval: false,
+          allowStudentRegistration: true
+        };
+        updated = true;
+      }
+
+      if (!config.brandingSettings) {
+        config.brandingSettings = {
+          logoUrl: '',
+          faviconUrl: '',
+          primaryColor: '#3b82f6',
+          accentColor: '#8b5cf6'
+        };
+        updated = true;
+      }
+
+      if (updated) {
+        await config.save();
+      }
     }
-    
+
     return config as DynamicConfigDocument;
   }
 
   async updateConfig(key: string, updateData: Partial<DynamicConfig>): Promise<DynamicConfigDocument> {
     const config = await this.dynamicConfigModel.findOne({ key });
-    
+
     if (!config) {
       throw new NotFoundException(`Configuration with key "${key}" not found`);
     }
 
     Object.assign(config, updateData);
     await config.save();
-    
+
+    return config;
+  }
+
+  async updateGeneralSettings(key: string, settings: any): Promise<DynamicConfigDocument> {
+    const config = await this.getConfig(key);
+
+    if (!config.generalSettings) {
+      config.generalSettings = settings;
+    } else {
+      Object.assign(config.generalSettings, settings);
+    }
+
+    await config.save();
+    return config;
+  }
+
+  async updateBrandingSettings(key: string, settings: any): Promise<DynamicConfigDocument> {
+    const config = await this.getConfig(key);
+
+    if (!config.brandingSettings) {
+      config.brandingSettings = settings;
+    } else {
+      Object.assign(config.brandingSettings, settings);
+    }
+
+    await config.save();
     return config;
   }
 
   async addEducationLevel(key: string, educationLevel: any): Promise<DynamicConfigDocument> {
     const config = await this.getConfig(key);
-    
+
     // Check if education level already exists
     const existingLevel = config.educationLevels?.find(level => level.code === educationLevel.code);
     if (existingLevel) {
@@ -46,16 +100,16 @@ export class DynamicConfigService {
     if (!config.educationLevels) {
       config.educationLevels = [];
     }
-    
+
     config.educationLevels.push(educationLevel);
     await config.save();
-    
+
     return config;
   }
 
   async updateEducationLevel(key: string, levelCode: string, updateData: any): Promise<DynamicConfigDocument> {
     const config = await this.getConfig(key);
-    
+
     const levelIndex = config.educationLevels?.findIndex(level => level.code === levelCode);
     if (levelIndex === -1 || levelIndex === undefined) {
       throw new NotFoundException(`Education level with code "${levelCode}" not found`);
@@ -63,22 +117,22 @@ export class DynamicConfigService {
 
     Object.assign(config.educationLevels[levelIndex], updateData);
     await config.save();
-    
+
     return config;
   }
 
   async removeEducationLevel(key: string, levelCode: string): Promise<DynamicConfigDocument> {
     const config = await this.getConfig(key);
-    
+
     config.educationLevels = config.educationLevels?.filter(level => level.code !== levelCode);
     await config.save();
-    
+
     return config;
   }
 
   async addSubject(key: string, subject: any): Promise<DynamicConfigDocument> {
     const config = await this.getConfig(key);
-    
+
     // Check if subject already exists
     const existingSubject = config.subjects?.find(subj => subj.code === subject.code);
     if (existingSubject) {
@@ -88,16 +142,16 @@ export class DynamicConfigService {
     if (!config.subjects) {
       config.subjects = [];
     }
-    
+
     config.subjects.push(subject);
     await config.save();
-    
+
     return config;
   }
 
   async updateSubject(key: string, subjectCode: string, updateData: any): Promise<DynamicConfigDocument> {
     const config = await this.getConfig(key);
-    
+
     const subjectIndex = config.subjects?.findIndex(subject => subject.code === subjectCode);
     if (subjectIndex === -1 || subjectIndex === undefined) {
       throw new NotFoundException(`Subject with code "${subjectCode}" not found`);
@@ -105,22 +159,22 @@ export class DynamicConfigService {
 
     Object.assign(config.subjects[subjectIndex], updateData);
     await config.save();
-    
+
     return config;
   }
 
   async removeSubject(key: string, subjectCode: string): Promise<DynamicConfigDocument> {
     const config = await this.getConfig(key);
-    
+
     config.subjects = config.subjects?.filter(subject => subject.code !== subjectCode);
     await config.save();
-    
+
     return config;
   }
 
   async addGrade(key: string, grade: any): Promise<DynamicConfigDocument> {
     const config = await this.getConfig(key);
-    
+
     // Check if grade already exists
     const existingGrade = config.grades?.find(g => g.code === grade.code);
     if (existingGrade) {
@@ -130,16 +184,16 @@ export class DynamicConfigService {
     if (!config.grades) {
       config.grades = [];
     }
-    
+
     config.grades.push(grade);
     await config.save();
-    
+
     return config;
   }
 
   async updateGrade(key: string, gradeCode: string, updateData: any): Promise<DynamicConfigDocument> {
     const config = await this.getConfig(key);
-    
+
     const gradeIndex = config.grades?.findIndex(grade => grade.code === gradeCode);
     if (gradeIndex === -1 || gradeIndex === undefined) {
       throw new NotFoundException(`Grade with code "${gradeCode}" not found`);
@@ -147,22 +201,129 @@ export class DynamicConfigService {
 
     Object.assign(config.grades[gradeIndex], updateData);
     await config.save();
-    
+
     return config;
   }
 
   async removeGrade(key: string, gradeCode: string): Promise<DynamicConfigDocument> {
     const config = await this.getConfig(key);
-    
+
     config.grades = config.grades?.filter(grade => grade.code !== gradeCode);
     await config.save();
-    
+
+    return config;
+  }
+
+  private ensureLocationArrays(config: DynamicConfigDocument) {
+    if (!config.cities) config.cities = [];
+    if (!config.districts) config.districts = [];
+    if (!config.provinces) config.provinces = [];
+  }
+
+  async addCity(key: string, item: { code: string; name: string; active?: boolean; order?: number }): Promise<DynamicConfigDocument> {
+    const config = await this.getConfig(key);
+    this.ensureLocationArrays(config);
+    const existing = config.cities?.find(c => c.code === item.code);
+    if (existing) {
+      throw new BadRequestException(`City with code "${item.code}" already exists`);
+    }
+    config.cities.push({
+      code: item.code,
+      name: item.name,
+      active: item.active !== false,
+      order: item.order ?? (config.cities.length + 1),
+    });
+    await config.save();
+    return config;
+  }
+
+  async updateCity(key: string, code: string, updateData: any): Promise<DynamicConfigDocument> {
+    const config = await this.getConfig(key);
+    this.ensureLocationArrays(config);
+    const idx = config.cities?.findIndex(c => c.code === code);
+    if (idx === -1 || idx === undefined) throw new NotFoundException(`City with code "${code}" not found`);
+    Object.assign(config.cities[idx], updateData);
+    await config.save();
+    return config;
+  }
+
+  async removeCity(key: string, code: string): Promise<DynamicConfigDocument> {
+    const config = await this.getConfig(key);
+    this.ensureLocationArrays(config);
+    config.cities = config.cities.filter(c => c.code !== code);
+    await config.save();
+    return config;
+  }
+
+  async addDistrict(key: string, item: { code: string; name: string; active?: boolean; order?: number }): Promise<DynamicConfigDocument> {
+    const config = await this.getConfig(key);
+    this.ensureLocationArrays(config);
+    const existing = config.districts?.find(d => d.code === item.code);
+    if (existing) throw new BadRequestException(`District with code "${item.code}" already exists`);
+    config.districts.push({
+      code: item.code,
+      name: item.name,
+      active: item.active !== false,
+      order: item.order ?? (config.districts.length + 1),
+    });
+    await config.save();
+    return config;
+  }
+
+  async updateDistrict(key: string, code: string, updateData: any): Promise<DynamicConfigDocument> {
+    const config = await this.getConfig(key);
+    this.ensureLocationArrays(config);
+    const idx = config.districts?.findIndex(d => d.code === code);
+    if (idx === -1 || idx === undefined) throw new NotFoundException(`District with code "${code}" not found`);
+    Object.assign(config.districts[idx], updateData);
+    await config.save();
+    return config;
+  }
+
+  async removeDistrict(key: string, code: string): Promise<DynamicConfigDocument> {
+    const config = await this.getConfig(key);
+    this.ensureLocationArrays(config);
+    config.districts = config.districts.filter(d => d.code !== code);
+    await config.save();
+    return config;
+  }
+
+  async addProvince(key: string, item: { code: string; name: string; active?: boolean; order?: number }): Promise<DynamicConfigDocument> {
+    const config = await this.getConfig(key);
+    this.ensureLocationArrays(config);
+    const existing = config.provinces?.find(p => p.code === item.code);
+    if (existing) throw new BadRequestException(`Province with code "${item.code}" already exists`);
+    config.provinces.push({
+      code: item.code,
+      name: item.name,
+      active: item.active !== false,
+      order: item.order ?? (config.provinces.length + 1),
+    });
+    await config.save();
+    return config;
+  }
+
+  async updateProvince(key: string, code: string, updateData: any): Promise<DynamicConfigDocument> {
+    const config = await this.getConfig(key);
+    this.ensureLocationArrays(config);
+    const idx = config.provinces?.findIndex(p => p.code === code);
+    if (idx === -1 || idx === undefined) throw new NotFoundException(`Province with code "${code}" not found`);
+    Object.assign(config.provinces[idx], updateData);
+    await config.save();
+    return config;
+  }
+
+  async removeProvince(key: string, code: string): Promise<DynamicConfigDocument> {
+    const config = await this.getConfig(key);
+    this.ensureLocationArrays(config);
+    config.provinces = config.provinces.filter(p => p.code !== code);
+    await config.save();
     return config;
   }
 
   async addProfileSection(key: string, section: any): Promise<DynamicConfigDocument> {
     const config = await this.getConfig(key);
-    
+
     // Check if section already exists
     const existingSection = config.profileSections?.find(sec => sec.id === section.id);
     if (existingSection) {
@@ -172,16 +333,16 @@ export class DynamicConfigService {
     if (!config.profileSections) {
       config.profileSections = [];
     }
-    
+
     config.profileSections.push(section);
     await config.save();
-    
+
     return config;
   }
 
   async updateProfileSection(key: string, sectionId: string, updateData: any): Promise<DynamicConfigDocument> {
     const config = await this.getConfig(key);
-    
+
     const sectionIndex = config.profileSections?.findIndex(section => section.id === sectionId);
     if (sectionIndex === -1 || sectionIndex === undefined) {
       throw new NotFoundException(`Profile section with ID "${sectionId}" not found`);
@@ -189,39 +350,39 @@ export class DynamicConfigService {
 
     Object.assign(config.profileSections[sectionIndex], updateData);
     await config.save();
-    
+
     return config;
   }
 
   async removeProfileSection(key: string, sectionId: string): Promise<DynamicConfigDocument> {
     const config = await this.getConfig(key);
-    
+
     config.profileSections = config.profileSections?.filter(section => section.id !== sectionId);
     await config.save();
-    
+
     return config;
   }
 
   async reorderProfileSections(key: string, sectionOrders: { id: string; order: number }[]): Promise<DynamicConfigDocument> {
     const config = await this.getConfig(key);
-    
+
     sectionOrders.forEach(({ id, order }) => {
       const section = config.profileSections?.find(sec => sec.id === id);
       if (section) {
         section.order = order;
       }
     });
-    
+
     // Sort sections by order
     config.profileSections?.sort((a, b) => a.order - b.order);
-    
+
     await config.save();
     return config;
   }
 
   async addProfileTemplate(key: string, template: any): Promise<DynamicConfigDocument> {
     const config = await this.getConfig(key);
-    
+
     // Check if template already exists
     const existingTemplate = config.profileTemplates?.find(tmpl => tmpl.id === template.id);
     if (existingTemplate) {
@@ -231,16 +392,16 @@ export class DynamicConfigService {
     if (!config.profileTemplates) {
       config.profileTemplates = [];
     }
-    
+
     config.profileTemplates.push(template);
     await config.save();
-    
+
     return config;
   }
 
   async updateProfileTemplate(key: string, templateId: string, updateData: any): Promise<DynamicConfigDocument> {
     const config = await this.getConfig(key);
-    
+
     const templateIndex = config.profileTemplates?.findIndex(template => template.id === templateId);
     if (templateIndex === -1 || templateIndex === undefined) {
       throw new NotFoundException(`Profile template with ID "${templateId}" not found`);
@@ -248,23 +409,23 @@ export class DynamicConfigService {
 
     Object.assign(config.profileTemplates[templateIndex], updateData);
     await config.save();
-    
+
     return config;
   }
 
   async removeProfileTemplate(key: string, templateId: string): Promise<DynamicConfigDocument> {
     const config = await this.getConfig(key);
-    
+
     config.profileTemplates = config.profileTemplates?.filter(template => template.id !== templateId);
     await config.save();
-    
+
     return config;
   }
 
   async getPublicConfig(): Promise<any> {
     const config = await this.getConfig();
-    
-    // Return only public-facing configuration
+
+    // Location options (provinces, districts, cities) are now from the locations API (RapidAPI Sri Lanka)
     return {
       educationLevels: config.educationLevels?.filter(level => level.active).sort((a, b) => a.order - b.order) || [],
       subjects: config.subjects?.filter(subject => subject.active).sort((a, b) => a.order - b.order) || [],
@@ -272,6 +433,8 @@ export class DynamicConfigService {
       profileSections: config.profileSections?.filter(section => section.visible) || [],
       profileTemplates: config.profileTemplates?.filter(template => template.active) || [],
       settings: config.settings,
+      generalSettings: config.generalSettings,
+      brandingSettings: config.brandingSettings,
     };
   }
 
@@ -359,12 +522,26 @@ export class DynamicConfigService {
       ],
       profileSections: [],
       profileTemplates: [],
+      cities: [],
+      districts: [],
+      provinces: [],
       settings: {
         maxEducationLevels: 10,
         maxSubjectsPerLevel: 20,
         maxCustomFields: 50,
         allowCustomSections: true,
         requireApproval: false
+      },
+      generalSettings: {
+        platformName: 'Tuition Management System',
+        supportEmail: 'support@example.com',
+        description: 'A comprehensive platform for managing tuition classes and students.',
+        teacherAutoApproval: false,
+        allowStudentRegistration: true
+      },
+      brandingSettings: {
+        primaryColor: '#3b82f6',
+        accentColor: '#8b5cf6'
       }
     };
 

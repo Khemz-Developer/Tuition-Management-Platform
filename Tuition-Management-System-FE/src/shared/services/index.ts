@@ -1,3 +1,5 @@
 export { default as api } from './api'
 export { authService } from './auth.service'
 export { uploadService } from './upload.service'
+export { SettingsService } from './settings.service'
+export { LocationsService } from './locations.service'

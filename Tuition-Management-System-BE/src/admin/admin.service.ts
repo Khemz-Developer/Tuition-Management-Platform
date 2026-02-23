@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from '../models/user.schema';
@@ -112,6 +112,56 @@ export class AdminService {
     await this.createAuditLog(adminId, AuditAction.TEACHER_REJECTED, 'TeacherProfile', id, { reason });
 
     return { message: 'Teacher rejected successfully', teacher };
+  }
+
+  async updateTeacherStatus(id: string, status: string, adminId: string, reason?: string) {
+    const teacher = await this.teacherProfileModel.findById(id);
+    if (!teacher) {
+      throw new NotFoundException('Teacher not found');
+    }
+
+    const validStatuses = [TeacherStatus.PENDING, TeacherStatus.APPROVED, TeacherStatus.REJECTED];
+    if (!validStatuses.includes(status as TeacherStatus)) {
+      throw new BadRequestException(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
+    }
+
+    if (status === TeacherStatus.REJECTED && !reason?.trim()) {
+      throw new BadRequestException('Reason is required when rejecting a teacher');
+    }
+
+    const previousStatus = teacher.status;
+    teacher.status = status as TeacherStatus;
+
+    if (status === TeacherStatus.APPROVED) {
+      teacher.approvedAt = new Date();
+      teacher.approvedBy = adminId as any;
+      teacher.rejectedAt = undefined;
+      teacher.rejectedBy = undefined;
+      teacher.rejectionReason = undefined;
+    } else if (status === TeacherStatus.REJECTED) {
+      teacher.rejectedAt = new Date();
+      teacher.rejectedBy = adminId as any;
+      teacher.rejectionReason = reason?.trim() || '';
+      teacher.approvedAt = undefined;
+      teacher.approvedBy = undefined;
+    } else {
+      // PENDING
+      teacher.approvedAt = undefined;
+      teacher.approvedBy = undefined;
+      teacher.rejectedAt = undefined;
+      teacher.rejectedBy = undefined;
+      teacher.rejectionReason = undefined;
+    }
+
+    await teacher.save();
+
+    await this.createAuditLog(adminId, AuditAction.TEACHER_STATUS_UPDATED, 'TeacherProfile', id, {
+      previousStatus,
+      newStatus: status,
+      reason: status === TeacherStatus.REJECTED ? reason : undefined,
+    });
+
+    return { message: 'Teacher status updated successfully', teacher };
   }
 
   async getStudents(query: any) {

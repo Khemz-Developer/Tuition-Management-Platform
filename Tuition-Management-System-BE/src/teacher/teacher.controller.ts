@@ -22,6 +22,11 @@ export class TeacherController {
     return this.teacherService.getProfile(user.id);
   }
 
+  @Get('config')
+  async getConfig() {
+    return this.teacherService.getPublicConfig();
+  }
+
   @Put('profile')
   async updateProfile(@CurrentUser() user: any, @Body() body: any) {
     return this.teacherService.updateProfile(user.id, body);

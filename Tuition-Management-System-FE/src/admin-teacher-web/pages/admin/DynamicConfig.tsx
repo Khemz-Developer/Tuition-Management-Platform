@@ -31,7 +31,8 @@ import {
   TableRow,
 } from '@/shared/components/ui/table'
 import { useToast } from '@/shared/components/ui/use-toast'
-import { get, put, post } from '@/shared/services/api'
+import { slugify } from '@/lib/utils'
+import { get, put, post, del } from '@/shared/services/api'
 import {
   Plus,
   Edit,
@@ -41,14 +42,8 @@ import {
   BookOpen,
   Users,
   GraduationCap,
-  DollarSign,
-  Phone,
-  Calendar,
-  Layout,
+  MapPin,
   RefreshCw,
-  Eye,
-  EyeOff,
-  MoreHorizontal,
 } from 'lucide-react'
 
 // Types
@@ -81,10 +76,20 @@ interface Grade {
   order: number
 }
 
+interface LocationItem {
+  code: string
+  name: string
+  active: boolean
+  order: number
+}
+
 interface DynamicConfig {
   educationLevels: EducationLevel[]
   subjects: Subject[]
   grades: Grade[]
+  cities: LocationItem[]
+  districts: LocationItem[]
+  provinces: LocationItem[]
   profileSections: any[]
   profileTemplates: any[]
   settings: any
@@ -120,10 +125,18 @@ export default function DynamicConfig() {
     }
   }
 
-  const handleToggleActive = async (type: 'education' | 'subject' | 'grade', code: string, active: boolean) => {
+  const getEndpoint = (type: string) => {
+    if (type === 'education') return 'education-levels'
+    if (type === 'city') return 'cities'
+    if (type === 'district') return 'districts'
+    if (type === 'province') return 'provinces'
+    return `${type}s`
+  }
+
+  const handleToggleActive = async (type: 'education' | 'subject' | 'grade' | 'city' | 'district' | 'province', code: string, active: boolean) => {
     try {
-      const endpoint = type === 'education' ? 'education-levels' : `${type}s`
-      await put(`/admin/dynamic-config/${endpoint}/${code}`, { active })
+      const endpoint = getEndpoint(type)
+      await put(`/admin/dynamic-config/${endpoint}/${encodeURIComponent(code)}`, { active })
       
       toast({
         title: 'Success',
@@ -154,8 +167,9 @@ export default function DynamicConfig() {
     if (!editingItem) return
 
     try {
-      const endpoint = editingItem.type === 'education' ? 'education-levels' : `${editingItem.type}s`
-      await put(`/admin/dynamic-config/${endpoint}/${editingItem.code}`, editingItem)
+      const endpoint = getEndpoint(editingItem.type)
+      const codeParam = ['city', 'district', 'province'].includes(editingItem.type) ? encodeURIComponent(editingItem.code) : editingItem.code
+      await put(`/admin/dynamic-config/${endpoint}/${codeParam}`, editingItem)
       
       toast({
         title: 'Success',
@@ -176,8 +190,18 @@ export default function DynamicConfig() {
 
   const handleSaveAdd = async () => {
     try {
-      const endpoint = newItem.type === 'education' ? 'education-levels' : `${newItem.type}s`
-      await post(`/admin/dynamic-config/${endpoint}`, newItem)
+      const endpoint = getEndpoint(newItem.type)
+      let body: any = newItem
+      if (['city', 'district', 'province'].includes(newItem.type)) {
+        const name = (newItem.name || '').trim()
+        if (!name) {
+          toast({ title: 'Validation', description: 'Name is required', variant: 'destructive' })
+          return
+        }
+        const code = slugify(name) || `item-${Date.now()}`
+        body = { code, name, active: true }
+      }
+      await post(`/admin/dynamic-config/${endpoint}`, body)
       
       toast({
         title: 'Success',
@@ -200,8 +224,9 @@ export default function DynamicConfig() {
     if (!confirm(`Are you sure you want to delete this ${type}?`)) return
 
     try {
-      const endpoint = type === 'education' ? 'education-levels' : `${type}s`
-      await fetch(`/admin/dynamic-config/${endpoint}/${code}`, { method: 'DELETE' })
+      const endpoint = getEndpoint(type)
+      const codeParam = ['city', 'district', 'province'].includes(type) ? encodeURIComponent(code) : code
+      await del(`/admin/dynamic-config/${endpoint}/${codeParam}`)
       
       toast({
         title: 'Success',
@@ -236,7 +261,7 @@ export default function DynamicConfig() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="flex flex-wrap gap-1 h-auto p-1">
           <TabsTrigger value="education" className="flex items-center gap-2">
             <GraduationCap className="h-4 w-4" />
             Education Levels
@@ -561,40 +586,47 @@ export default function DynamicConfig() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="code">Code</Label>
-              <Input
-                id="code"
-                value={editingItem?.code || ''}
-                onChange={(e) => setEditingItem({ ...editingItem, code: e.target.value })}
-                disabled
-              />
-            </div>
+            {editingItem?.type && !['city', 'district', 'province'].includes(editingItem.type) && (
+              <div className="space-y-2">
+                <Label htmlFor="code">Code</Label>
+                <Input
+                  id="code"
+                  value={editingItem?.code || ''}
+                  onChange={(e) => setEditingItem({ ...editingItem, code: e.target.value })}
+                  disabled
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <Input
                 id="name"
                 value={editingItem?.name || ''}
                 onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                placeholder={['city', 'district', 'province'].includes(editingItem?.type) ? 'e.g., Colombo, Western Province' : undefined}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={editingItem?.description || ''}
-                onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="order">Order</Label>
-              <Input
-                id="order"
-                type="number"
-                value={editingItem?.order || 0}
-                onChange={(e) => setEditingItem({ ...editingItem, order: parseInt(e.target.value) })}
-              />
-            </div>
+            {editingItem?.type && !['city', 'district', 'province'].includes(editingItem.type) && (
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={editingItem?.description || ''}
+                  onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
+                />
+              </div>
+            )}
+            {editingItem?.type && !['city', 'district', 'province'].includes(editingItem.type) && (
+              <div className="space-y-2">
+                <Label htmlFor="order">Order</Label>
+                <Input
+                  id="order"
+                  type="number"
+                  value={editingItem?.order ?? 0}
+                  onChange={(e) => setEditingItem({ ...editingItem, order: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+            )}
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={() => setShowEditDialog(false)}>
                 Cancel
@@ -620,43 +652,49 @@ export default function DynamicConfig() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="newCode">Code</Label>
-              <Input
-                id="newCode"
-                placeholder="e.g., PRIMARY, MATHEMATICS"
-                value={newItem.code || ''}
-                onChange={(e) => setNewItem({ ...newItem, code: e.target.value.toUpperCase() })}
-              />
-            </div>
+            {newItem.type && !['city', 'district', 'province'].includes(newItem.type) && (
+              <div className="space-y-2">
+                <Label htmlFor="newCode">Code</Label>
+                <Input
+                  id="newCode"
+                  placeholder="e.g., PRIMARY, MATHEMATICS"
+                  value={newItem.code || ''}
+                  onChange={(e) => setNewItem({ ...newItem, code: e.target.value.toUpperCase() })}
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="newName">Name</Label>
               <Input
                 id="newName"
-                placeholder="e.g., Primary Education, Mathematics"
+                placeholder={['city', 'district', 'province'].includes(newItem.type) ? 'e.g., Colombo, Western Province' : 'e.g., Primary Education, Mathematics'}
                 value={newItem.name || ''}
                 onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="newDescription">Description</Label>
-              <Textarea
-                id="newDescription"
-                placeholder="Optional description"
-                value={newItem.description || ''}
-                onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newOrder">Order</Label>
-              <Input
-                id="newOrder"
-                type="number"
-                placeholder="Display order"
-                value={newItem.order || 0}
-                onChange={(e) => setNewItem({ ...newItem, order: parseInt(e.target.value) })}
-              />
-            </div>
+            {newItem.type && !['city', 'district', 'province'].includes(newItem.type) && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="newDescription">Description</Label>
+                  <Textarea
+                    id="newDescription"
+                    placeholder="Optional description"
+                    value={newItem.description || ''}
+                    onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newOrder">Order</Label>
+                  <Input
+                    id="newOrder"
+                    type="number"
+                    placeholder="Display order"
+                    value={newItem.order ?? 0}
+                    onChange={(e) => setNewItem({ ...newItem, order: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+              </>
+            )}
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={() => setShowAddDialog(false)}>
                 Cancel
