@@ -1,5 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import helmet from 'helmet';
+import cookieParser = require('cookie-parser');
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './filters/http-exception.filter';
 import { TransformInterceptor } from './interceptors/transform.interceptor';
@@ -24,6 +26,15 @@ async function bootstrap() {
     const app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log', 'debug', 'verbose'] });
     console.log('Bootstrap: NestJS application created successfully');
 
+  // Security headers (Helmet) - HSTS, XSS protection, etc.
+  const isProduction = process.env.NODE_ENV === 'production';
+  app.use(
+    helmet({
+      hsts: isProduction ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
+      contentSecurityPolicy: isProduction ? undefined : false,
+    }),
+  );
+
   // Global prefix
   app.setGlobalPrefix('api');
 
@@ -36,6 +47,9 @@ async function bootstrap() {
     origin: corsOrigins,
     credentials: true,
   });
+
+  // Parse cookies (required for httpOnly refresh-token flow)
+  app.use(cookieParser());
 
   // Global validation pipe
   app.useGlobalPipes(

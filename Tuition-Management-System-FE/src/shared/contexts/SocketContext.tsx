@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { Socket } from 'socket.io-client'
 import { initializeSocket, disconnectSocket, getSocket } from '@/lib/socket'
 import { useAuth } from '../hooks/useAuth'
+import { getAccessToken } from '../services/api'
 
 interface SocketContextType {
   socket: Socket | null
@@ -20,7 +21,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      const token = localStorage.getItem('accessToken')
+      const token = getAccessToken()
       if (token) {
         try {
           const socketInstance = initializeSocket(token)

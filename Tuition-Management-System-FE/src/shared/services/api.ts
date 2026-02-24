@@ -3,9 +3,20 @@ import type { ApiResponse, ApiError } from '../types'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
+let accessTokenMemory: string | null = null
+
+export const getAccessToken = () => accessTokenMemory
+export const setAccessToken = (token: string | null) => {
+  accessTokenMemory = token
+}
+export const clearAccessToken = () => {
+  accessTokenMemory = null
+}
+
 // Create axios instance
 const api: AxiosInstance = axios.create({
   baseURL: API_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -15,7 +26,7 @@ const api: AxiosInstance = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('accessToken')
+    const token = getAccessToken()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -62,27 +73,27 @@ api.interceptors.response.use(
       isRefreshing = true
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken')
-        if (!refreshToken) {
-          throw new Error('No refresh token')
-        }
+        const response = await axios.post(
+          `${API_URL}/auth/refresh`,
+          {},
+          { withCredentials: true },
+        )
 
-        const response = await axios.post(`${API_URL}/auth/refresh`, {
-          refreshToken,
-        })
-
-        const { accessToken, refreshToken: newRefreshToken } = response.data.data
-        localStorage.setItem('accessToken', accessToken)
-        localStorage.setItem('refreshToken', newRefreshToken)
+        const { accessToken } = response.data.data
+        setAccessToken(accessToken)
 
         onRefreshed(accessToken)
         originalRequest.headers.Authorization = `Bearer ${accessToken}`
         return api(originalRequest)
       } catch (refreshError) {
-        // Clear tokens and redirect to login
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        window.location.href = '/login'
+        // Clear tokens and redirect to login with current path for post-login redirect
+        clearAccessToken()
+        // Save current path so user can be redirected back after login
+        const currentPath = window.location.pathname
+        const loginUrl = currentPath && currentPath !== '/login' && currentPath !== '/'
+          ? `/login?redirect=${encodeURIComponent(currentPath)}`
+          : '/login'
+        window.location.href = loginUrl
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false

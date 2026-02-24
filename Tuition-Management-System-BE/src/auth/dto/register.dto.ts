@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, IsEnum, IsOptional, ValidateNested } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsEnum, IsOptional, ValidateNested, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
 import { UserRole } from '../../models/user.schema';
 
@@ -28,7 +28,11 @@ export class RegisterDto {
   email: string;
 
   @IsString()
-  @MinLength(6)
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @Matches(/(?=.*[a-z])/, { message: 'Password must contain at least one lowercase letter' })
+  @Matches(/(?=.*[A-Z])/, { message: 'Password must contain at least one uppercase letter' })
+  @Matches(/(?=.*\d)/, { message: 'Password must contain at least one number' })
+  @Matches(/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/, { message: 'Password must contain at least one special character' })
   password: string;
 
   @IsEnum(UserRole)

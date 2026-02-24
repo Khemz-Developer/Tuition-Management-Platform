@@ -10,6 +10,7 @@ import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { User, UserSchema } from '../models/user.schema';
 import { TeacherProfile, TeacherProfileSchema } from '../models/teacher-profile.schema';
 import { StudentProfile, StudentProfileSchema } from '../models/student-profile.schema';
+import { RefreshToken, RefreshTokenSchema } from '../models/refresh-token.schema';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { StudentProfile, StudentProfileSchema } from '../models/student-profile.
       { name: User.name, schema: UserSchema },
       { name: TeacherProfile.name, schema: TeacherProfileSchema },
       { name: StudentProfile.name, schema: StudentProfileSchema },
+      { name: RefreshToken.name, schema: RefreshTokenSchema },
     ]),
   ],
   controllers: [AuthController],

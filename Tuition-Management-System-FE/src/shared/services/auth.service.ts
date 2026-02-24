@@ -11,14 +11,11 @@ export const authService = {
   },
 
   async logout(): Promise<void> {
-    const refreshToken = localStorage.getItem('refreshToken')
-    if (refreshToken) {
-      await post('/auth/logout', { refreshToken })
-    }
+    await post('/auth/logout')
   },
 
-  async refreshToken(refreshToken: string): Promise<AuthTokens> {
-    return post<AuthTokens>('/auth/refresh', { refreshToken })
+  async refreshToken(): Promise<AuthTokens> {
+    return post<AuthTokens>('/auth/refresh')
   },
 
   async getCurrentUser(): Promise<User> {

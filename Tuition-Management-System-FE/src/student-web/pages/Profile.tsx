@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui
 import { useAuth } from '@/shared/hooks/useAuth'
 import { useToast } from '@/shared/components/ui/use-toast'
 import { getInitials } from '@/lib/utils'
-import api, { get, put } from '@/shared/services/api'
+import api, { get, put, getAccessToken } from '@/shared/services/api'
 import { ImageCropper } from '@/shared/components/ImageCropper'
 import type { StudentProfile } from '@/shared/types/user.types'
 import { Camera, Save, Loader2 } from 'lucide-react'
@@ -221,19 +221,19 @@ export default function StudentProfile() {
       setIsLoading(true)
       
       // Upload image if changed
-      let imageUrl: string | null = profileImage || null
-      if (imageFile) {
-        try {
-          if (!localStorage.getItem('accessToken')) {
-            toast({
-              title: 'Session expired',
-              description: 'Please sign in again to upload images',
-              variant: 'destructive',
-            })
-            setIsLoading(false)
-            return
-          }
-          setIsUploading(true)
+        // Upload image if changed
+        let imageUrl: string | null = profileImage || null
+        if (imageFile) {
+          try {
+            if (!getAccessToken()) {
+              toast({
+                title: 'Session expired',
+                description: 'Please sign in again to upload images',
+                variant: 'destructive',
+              })
+              setIsLoading(false)
+              return
+            }
           setUploadProgress(0)
           
           const formData = new FormData()

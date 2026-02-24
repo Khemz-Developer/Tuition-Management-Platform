@@ -1,6 +1,7 @@
 import { createContext, useCallback, useEffect, useState, ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { authService } from '../services/auth.service'
+import { getAccessToken, setAccessToken, clearAccessToken } from '../services/api'
 import type { User, LoginCredentials, RegisterData, AuthTokens } from '../types'
 
 interface AuthContextType {
@@ -15,53 +16,61 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | null>(null)
 
-const TOKEN_KEY = 'accessToken'
-const REFRESH_TOKEN_KEY = 'refreshToken'
+/**
+ * Get the default dashboard path for a given user role.
+ */
+function getRoleDashboard(role: string): string {
+  switch (role) {
+    case 'ADMIN':
+      return '/admin/dashboard'
+    case 'TEACHER':
+      return '/teacher/dashboard'
+    case 'STUDENT':
+      return '/student/dashboard'
+    default:
+      return '/'
+  }
+}
+
+/**
+ * Validate that a redirect path is safe (same-origin, no protocol injection).
+ */
+function isSafeRedirect(path: string): boolean {
+  if (!path) return false
+  // Must start with / and not with // (protocol-relative URL)
+  if (!path.startsWith('/') || path.startsWith('//')) return false
+  // Block javascript: or data: schemes
+  if (/^\/*(javascript|data|vbscript):/i.test(path)) return false
+  return true
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
+  const location = useLocation()
 
   const saveTokens = (tokens: AuthTokens) => {
-    localStorage.setItem(TOKEN_KEY, tokens.accessToken)
-    localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken)
+    setAccessToken(tokens.accessToken)
   }
 
   const clearTokens = () => {
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(REFRESH_TOKEN_KEY)
+    clearAccessToken()
   }
 
   const refreshUser = useCallback(async () => {
     try {
-      const accessToken = localStorage.getItem(TOKEN_KEY)
-      if (!accessToken) {
-        setUser(null)
-        setIsLoading(false)
-        return
+      // If access token exists in memory, use it; otherwise try cookie-based refresh.
+      if (!getAccessToken()) {
+        const refreshedTokens = await authService.refreshToken()
+        saveTokens(refreshedTokens)
       }
 
       const userData = await authService.getCurrentUser()
       setUser(userData)
     } catch (error) {
-      console.error('Failed to refresh user:', error)
-      // Try to refresh the token
-      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
-      if (refreshToken) {
-        try {
-          const tokens = await authService.refreshToken(refreshToken)
-          saveTokens(tokens)
-          const userData = await authService.getCurrentUser()
-          setUser(userData)
-        } catch {
-          clearTokens()
-          setUser(null)
-        }
-      } else {
-        clearTokens()
-        setUser(null)
-      }
+      clearTokens()
+      setUser(null)
     } finally {
       setIsLoading(false)
     }
@@ -78,13 +87,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       saveTokens(response.tokens)
       setUser(response.user)
       
-      // Navigate based on role
-      if (response.user.role === 'ADMIN') {
-        navigate('/admin/dashboard')
-      } else if (response.user.role === 'TEACHER') {
-        navigate('/teacher/dashboard')
+      // Redirect after login: use saved location if safe, else role dashboard
+      const savedLocation = (location.state as any)?.from?.pathname
+      const searchParams = new URLSearchParams(location.search)
+      const redirectParam = searchParams.get('redirect')
+      
+      const redirectTo = savedLocation || redirectParam
+      if (redirectTo && isSafeRedirect(redirectTo)) {
+        navigate(redirectTo, { replace: true })
       } else {
-        navigate('/dashboard')
+        navigate(getRoleDashboard(response.user.role), { replace: true })
       }
     } catch (error) {
       throw error
@@ -100,12 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       saveTokens(response.tokens)
       setUser(response.user)
       
-      // Navigate based on role
-      if (response.user.role === 'TEACHER') {
-        navigate('/teacher/dashboard')
-      } else {
-        navigate('/dashboard')
-      }
+      // Navigate to role-appropriate dashboard
+      navigate(getRoleDashboard(response.user.role), { replace: true })
     } finally {
       setIsLoading(false)
     }
@@ -113,13 +121,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      // Call backend logout to revoke refresh token
       await authService.logout()
     } catch (error) {
-      console.error('Logout error:', error)
+      // Logout should always succeed client-side even if backend call fails
     } finally {
       clearTokens()
       setUser(null)
-      navigate('/login')
+      navigate('/login', { replace: true })
     }
   }
 

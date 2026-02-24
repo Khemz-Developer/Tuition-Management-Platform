@@ -1,6 +1,7 @@
 export * from './user.schema';
 export * from './teacher-profile.schema';
 export * from './student-profile.schema';
+export * from './refresh-token.schema';
 export * from './class.schema';
 export * from './enrollment.schema';
 export * from './session.schema';
