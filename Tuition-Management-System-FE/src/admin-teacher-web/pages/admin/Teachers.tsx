@@ -217,20 +217,55 @@ export default function AdminTeachers() {
       sortable: true,
     },
     {
-      id: 'lastModified',
-      header: 'Last Modified',
+      id: 'actions',
+      header: 'Actions',
       cell: (row) => (
-        <span className="text-muted-foreground">
-          {row.updatedAt 
-            ? new Date(row.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-            : new Date(row.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-          }
-        </span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleViewDetails(row._id)}>
+              <Eye className="mr-2 h-4 w-4" />
+              View Details
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openStatusDialog(row)} disabled={isActionLoading}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Change Status
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Mail className="mr-2 h-4 w-4" />
+              Send Email
+            </DropdownMenuItem>
+            {row.status === 'PENDING' && (
+              <>
+                <DropdownMenuItem
+                  className="text-green-600"
+                  onClick={() => handleApprove(row._id)}
+                  disabled={isActionLoading}
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  Approve
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => openRejectDialog(row._id)}
+                  disabled={isActionLoading}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Reject
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       ),
-      sortable: true,
+      sortable: false,
       defaultPinned: 'right',
     },
-  ], [])
+  ], [isActionLoading])
 
   // Count teachers by status
   const statusCounts = useMemo(() => {
@@ -458,49 +493,6 @@ export default function AdminTeachers() {
                 pageSize={5}
                 showViewToggle={true}
                 defaultView="list"
-                renderRowActions={(row) => (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleViewDetails(row._id)}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openStatusDialog(row)} disabled={isActionLoading}>
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Change Status
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Mail className="mr-2 h-4 w-4" />
-                        Send Email
-                      </DropdownMenuItem>
-                      {row.status === 'PENDING' && (
-                        <>
-                          <DropdownMenuItem
-                            className="text-green-600"
-                            onClick={() => handleApprove(row._id)}
-                            disabled={isActionLoading}
-                          >
-                            <Check className="mr-2 h-4 w-4" />
-                            Approve
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => openRejectDialog(row._id)}
-                            disabled={isActionLoading}
-                          >
-                            <X className="mr-2 h-4 w-4" />
-                            Reject
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
                 renderGridItem={(row) => (
                   <Card className="hover:shadow-md transition-shadow">
                     <CardContent className="pt-6">

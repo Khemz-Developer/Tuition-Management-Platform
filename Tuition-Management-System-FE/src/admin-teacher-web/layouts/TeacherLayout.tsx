@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   BookOpen,
   Calendar,
+  CalendarDays,
   ClipboardCheck,
   FolderOpen,
   MessageSquare,
@@ -37,6 +38,7 @@ import { cn, getInitials } from '@/lib/utils'
 const navItems = [
   { to: '/teacher/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/teacher/classes', label: 'My Classes', icon: BookOpen },
+  { to: '/teacher/calendar', label: 'Calendar', icon: CalendarDays },
   { to: '/teacher/sessions', label: 'Sessions', icon: Calendar },
   { to: '/teacher/attendance', label: 'Attendance', icon: ClipboardCheck },
   { to: '/teacher/content', label: 'Content', icon: FolderOpen },
@@ -71,11 +73,11 @@ export default function TeacherLayout() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed top-0 left-0 z-50 h-full w-64 bg-card border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0',
+          'fixed top-0 left-0 z-50 h-full w-64 bg-card border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0 flex flex-col',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="flex items-center justify-between h-16 px-4 border-b">
+        <div className="flex items-center justify-between h-16 px-4 border-b shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <span className="text-sm font-bold text-primary-foreground">T</span>
@@ -92,7 +94,7 @@ export default function TeacherLayout() {
           </Button>
         </div>
 
-        <nav className="p-4 space-y-1">
+        <nav className="p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
               key={item.to}

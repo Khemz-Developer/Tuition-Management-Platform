@@ -29,11 +29,24 @@ import { getInitials } from '@/lib/utils'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-function formatFee(currency: string | undefined, fee: number | undefined): string {
+function formatFee(
+  currency: string | undefined,
+  fee: number | undefined,
+  feeType?: string | null
+): string {
   if (fee == null) return '—'
   const amount = typeof fee === 'number' ? fee.toLocaleString() : String(fee)
-  if (!currency || currency === 'LKR') return `Rs. ${amount}`
-  return `${currency} ${amount}`
+  const curr = !currency || currency === 'LKR' ? 'Rs.' : currency
+  const per = feeType
+    ? feeType === 'PER_HOUR'
+      ? ' per hour'
+      : feeType === 'PER_DAY'
+        ? ' per day'
+        : feeType === 'PER_MONTH'
+          ? ' per month'
+          : ''
+    : ''
+  return `${curr} ${amount}${per}`
 }
 
 function formatDate(dateStr: string | undefined): string {
@@ -190,7 +203,7 @@ export default function TeacherClassDetail() {
                   </Badge>
                   {classData.fee != null && (
                     <Badge variant="outline" className="text-xs font-medium">
-                      {formatFee(classData.currency, classData.fee)}
+                      {formatFee(classData.currency, classData.fee, classData.feeType)}
                     </Badge>
                   )}
                 </div>

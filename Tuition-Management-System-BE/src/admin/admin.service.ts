@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User, UserDocument } from '../models/user.schema';
 import { TeacherProfile, TeacherProfileDocument, TeacherStatus } from '../models/teacher-profile.schema';
 import { StudentProfile, StudentProfileDocument } from '../models/student-profile.schema';
@@ -183,6 +183,13 @@ export class AdminService {
     return createPaginationResult(students, total, page, limit);
   }
 
+  private getTeacherUserIdFromClass(c: any): string | null {
+    const t = c?.teacherId;
+    if (!t) return null;
+    if (typeof t === 'object' && t !== null && '_id' in t) return (t._id && String(t._id)) || null;
+    return String(t);
+  }
+
   async getClasses(query: any) {
     const { page, limit, sort, order } = getPaginationOptions(query);
     const skip = (page - 1) * limit;
@@ -195,11 +202,72 @@ export class AdminService {
         .sort({ [sort]: sortOrder })
         .skip(skip)
         .limit(limit)
+        .lean()
         .exec(),
       this.classModel.countDocuments(),
     ]);
 
-    return createPaginationResult(classes, total, page, limit);
+    const teacherIdStrings = [...new Set((classes as any[]).map((c) => this.getTeacherUserIdFromClass(c)).filter(Boolean))];
+    const teacherProfiles = teacherIdStrings.length
+      ? await this.teacherProfileModel
+          .find({ userId: { $in: teacherIdStrings } })
+          .select('userId firstName lastName')
+          .lean()
+          .exec()
+      : [];
+    const teacherNameByUserId = new Map<string, string>();
+    for (const tp of teacherProfiles) {
+      const uid = (tp as any).userId?.toString?.() ?? String((tp as any).userId ?? '');
+      const name = [tp.firstName, tp.lastName].filter(Boolean).join(' ').trim() || 'Teacher';
+      if (uid) teacherNameByUserId.set(uid, name);
+    }
+
+    const data = (classes as any[]).map((c) => {
+      const plain = { ...c };
+      const tid = this.getTeacherUserIdFromClass(plain);
+      const teacherName = tid ? teacherNameByUserId.get(tid) : null;
+      const teacherUser = plain.teacherId && typeof plain.teacherId === 'object' ? plain.teacherId : null;
+      plain.teacher = {
+        _id: plain.teacherId?._id ?? plain.teacherId,
+        name: teacherName ?? teacherUser?.email ?? 'N/A',
+        email: teacherUser?.email ?? '',
+      };
+      return plain;
+    });
+
+    return createPaginationResult(data, total, page, limit);
+  }
+
+  async getClassById(id: string) {
+    const cls = await this.classModel.findById(id).populate('teacherId', 'email').lean().exec();
+    if (!cls) throw new NotFoundException('Class not found');
+    const tid = this.getTeacherUserIdFromClass(cls);
+    let teacherName = 'N/A';
+    const teacherEmail = (cls as any).teacherId?.email ?? '';
+    if (tid) {
+      try {
+        const profile = await this.teacherProfileModel
+          .findOne({ userId: new Types.ObjectId(tid) })
+          .select('firstName lastName')
+          .lean()
+          .exec();
+        if (profile && (profile.firstName || profile.lastName))
+          teacherName = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim();
+        else if (teacherEmail) teacherName = teacherEmail;
+      } catch {
+        if (teacherEmail) teacherName = teacherEmail;
+      }
+    } else if (teacherEmail) {
+      teacherName = teacherEmail;
+    }
+    return {
+      ...cls,
+      teacher: {
+        _id: (cls as any).teacherId?._id ?? (cls as any).teacherId,
+        name: teacherName,
+        email: teacherEmail,
+      },
+    };
   }
 
   async suspendUser(id: string, reason: string, adminId: string) {

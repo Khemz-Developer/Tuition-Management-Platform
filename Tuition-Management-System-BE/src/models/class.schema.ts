@@ -52,6 +52,10 @@ export class Class {
   @Prop()
   fee?: number;
 
+  /** How fee is charged: per hour, per day, or per month */
+  @Prop({ enum: ['PER_HOUR', 'PER_DAY', 'PER_MONTH'] })
+  feeType?: string;
+
   @Prop({ required: true, default: 30 })
   capacity: number;
 

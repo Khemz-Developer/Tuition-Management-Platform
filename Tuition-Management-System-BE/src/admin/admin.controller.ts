@@ -56,6 +56,11 @@ export class AdminController {
     return this.adminService.getClasses(query);
   }
 
+  @Get('classes/:id')
+  async getClass(@Param('id') id: string) {
+    return this.adminService.getClassById(id);
+  }
+
   @Post('users/:id/suspend')
   async suspendUser(@Param('id') id: string, @Body() body: { reason: string }, @CurrentUser() user: any) {
     return this.adminService.suspendUser(id, body.reason, user.id);

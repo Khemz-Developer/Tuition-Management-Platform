@@ -57,12 +57,34 @@ import { useToast } from '@/shared/components/ui/use-toast'
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-/** Format fee for display: Sri Lankan Rupees (Rs.) by default */
-function formatFee(currency: string | undefined, fee: number | undefined): string {
+/** Fee type labels as used in society */
+const FEE_TYPE_OPTIONS = [
+  { value: 'PER_HOUR', label: 'Per hour' },
+  { value: 'PER_DAY', label: 'Per day' },
+  { value: 'PER_MONTH', label: 'Per month' },
+] as const
+
+type FeeType = (typeof FEE_TYPE_OPTIONS)[number]['value']
+
+/** Format fee for display: amount + currency + optional fee type (per hour/day/month) */
+function formatFee(
+  currency: string | undefined,
+  fee: number | undefined,
+  feeType?: FeeType | string | null
+): string {
   if (fee == null) return '—'
   const amount = typeof fee === 'number' ? fee.toLocaleString() : String(fee)
-  if (!currency || currency === 'LKR') return `Rs. ${amount}`
-  return `${currency} ${amount}`
+  const curr = !currency || currency === 'LKR' ? 'Rs.' : currency
+  const per = feeType
+    ? feeType === 'PER_HOUR'
+      ? ' per hour'
+      : feeType === 'PER_DAY'
+        ? ' per day'
+        : feeType === 'PER_MONTH'
+          ? ' per month'
+          : ''
+    : ''
+  return `${curr} ${amount}${per}`
 }
 
 /** Backend returns scheduleRules as single object { daysOfWeek, startTime, endTime }; FE type uses array */
@@ -134,6 +156,7 @@ function EditClassDialog({
   const [status, setStatus] = useState(cls?.status ?? 'DRAFT')
   const [visibility, setVisibility] = useState<ClassVisibility>(cls?.visibility ?? 'PUBLIC')
   const [fee, setFee] = useState(cls?.fee != null ? String(cls.fee) : '')
+  const [feeType, setFeeType] = useState<FeeType>(cls?.feeType ?? 'PER_HOUR')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -143,6 +166,7 @@ function EditClassDialog({
       setStatus(cls.status)
       setVisibility(cls.visibility)
       setFee(cls.fee != null ? String(cls.fee) : '')
+      setFeeType((cls.feeType as FeeType) ?? 'PER_HOUR')
     }
   }, [cls])
 
@@ -157,6 +181,7 @@ function EditClassDialog({
         status,
         visibility,
         fee: fee ? Number(fee) : undefined,
+        feeType: fee ? feeType : undefined,
       })
       toast({ title: 'Class updated' })
       onSuccess()
@@ -210,9 +235,26 @@ function EditClassDialog({
               </Select>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Fee (optional)</Label>
-            <Input type="number" min={0} value={fee} onChange={(e) => setFee(e.target.value)} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Fee (optional)</Label>
+              <Input type="number" min={0} value={fee} onChange={(e) => setFee(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Fee type</Label>
+              <Select value={feeType} onValueChange={(v) => setFeeType(v as FeeType)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FEE_TYPE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
@@ -270,6 +312,7 @@ function CreateClassView({ onSuccess }: { onSuccess: () => void }) {
   const [studentTargetType, setStudentTargetType] = useState<string>('')
   const [languages, setLanguages] = useState<string[]>([])
   const [fee, setFee] = useState('')
+  const [feeType, setFeeType] = useState<FeeType>('PER_HOUR')
   const [currency, setCurrency] = useState('LKR')
   const [visibility, setVisibility] = useState<ClassVisibility>('PUBLIC')
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>([])
@@ -338,6 +381,7 @@ function CreateClassView({ onSuccess }: { onSuccess: () => void }) {
         studentTargetType: studentTargetType || undefined,
         languages: languages.length > 0 ? languages : undefined,
         fee: fee ? Number(fee) : undefined,
+        feeType: fee ? feeType : undefined,
         currency: currency || undefined,
         visibility,
         status: 'DRAFT',
@@ -553,7 +597,7 @@ function CreateClassView({ onSuccess }: { onSuccess: () => void }) {
               </div>
             )}
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
                 <Label htmlFor="fee">Fee (optional)</Label>
                 <Input
@@ -561,14 +605,30 @@ function CreateClassView({ onSuccess }: { onSuccess: () => void }) {
                   type="number"
                   min={0}
                   step={0.01}
+                  placeholder="e.g. 500"
                   value={fee}
                   onChange={(e) => setFee(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="feeType">Fee type</Label>
+                <Select value={feeType} onValueChange={(v) => setFeeType(v as FeeType)}>
+                  <SelectTrigger id="feeType">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FEE_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="currency">Currency</Label>
                 <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger>
+                  <SelectTrigger id="currency">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -865,15 +925,12 @@ export default function TeacherClasses() {
                             )}
                             {cls.fee != null && (
                               <Badge variant="outline" className="text-xs font-medium">
-                                {formatFee(cls.currency, cls.fee)}
+                                {formatFee(cls.currency, cls.fee, cls.feeType)}
                               </Badge>
                             )}
                           </div>
                         </CardHeader>
                         <CardContent className="flex-1 space-y-4 pb-4">
-                          {cls.description && (
-                            <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">{cls.description}</p>
-                          )}
                           <div className="space-y-3 text-sm">
                             <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-muted-foreground">
                               <Calendar className="h-4 w-4 shrink-0 text-primary" />

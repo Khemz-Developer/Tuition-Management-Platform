@@ -8,6 +8,7 @@ import AdminDashboard from './admin-teacher-web/pages/admin/Dashboard'
 import AdminTeachers from './admin-teacher-web/pages/admin/Teachers'
 import AdminStudents from './admin-teacher-web/pages/admin/Students'
 import AdminClasses from './admin-teacher-web/pages/admin/Classes'
+import AdminClassDetail from './admin-teacher-web/pages/admin/ClassDetail'
 import AdminSettings from './admin-teacher-web/pages/admin/Settings'
 import AdminAuditLogs from './admin-teacher-web/pages/admin/AuditLogs'
 import DynamicConfig from './admin-teacher-web/pages/admin/DynamicConfig'
@@ -15,6 +16,7 @@ import TeacherDashboard from './admin-teacher-web/pages/teacher/Dashboard'
 import TeacherClasses from './admin-teacher-web/pages/teacher/Classes'
 import TeacherClassDetail from './admin-teacher-web/pages/teacher/ClassDetail'
 import TeacherSessions from './admin-teacher-web/pages/teacher/Sessions'
+import TeacherCalendar from './admin-teacher-web/pages/teacher/Calendar'
 import TeacherAttendance from './admin-teacher-web/pages/teacher/Attendance'
 import TeacherContent from './admin-teacher-web/pages/teacher/Content'
 import TeacherMessages from './admin-teacher-web/pages/teacher/Messages'
@@ -85,6 +87,7 @@ function App() {
             <Route path="/admin/teachers/:id" element={<AdminTeachers />} />
             <Route path="/admin/students" element={<AdminStudents />} />
             <Route path="/admin/classes" element={<AdminClasses />} />
+            <Route path="/admin/classes/:id" element={<AdminClassDetail />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
             <Route path="/admin/dynamic-config" element={<DynamicConfig />} />
@@ -106,6 +109,7 @@ function App() {
             <Route path="/teacher/classes/:id/attendance" element={<TeacherClassDetail />} />
             <Route path="/teacher/classes/:id/content" element={<TeacherClassDetail />} />
             <Route path="/teacher/sessions" element={<TeacherSessions />} />
+            <Route path="/teacher/calendar" element={<TeacherCalendar />} />
             <Route path="/teacher/attendance" element={<TeacherAttendance />} />
             <Route path="/teacher/content" element={<TeacherContent />} />
             <Route path="/teacher/messages" element={<TeacherMessages />} />

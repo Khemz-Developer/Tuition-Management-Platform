@@ -23,6 +23,7 @@ export interface Class {
   grade: string
   fee?: number
   currency?: string
+  feeType?: 'PER_HOUR' | 'PER_DAY' | 'PER_MONTH'
   capacity?: number
   enrolledCount?: number
   scheduleRules?: ScheduleRule[]
@@ -49,6 +50,7 @@ export interface CreateClassDto {
   grade: string
   fee?: number
   currency?: string
+  feeType?: 'PER_HOUR' | 'PER_DAY' | 'PER_MONTH'
   capacity?: number
   scheduleRules?: ScheduleRule[]
   visibility?: ClassVisibility
