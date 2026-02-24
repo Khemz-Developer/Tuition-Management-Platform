@@ -26,11 +26,32 @@ export class Location {
   @Prop()
   address?: string;
 
+  @Prop()
+  instituteName?: string;
+
   @Prop({ type: { lat: Number, lng: Number }, _id: false })
   coordinates?: {
     lat: number;
     lng: number;
   };
+}
+
+@Schema({ _id: false })
+export class TeachingLocation {
+  @Prop()
+  instituteName?: string;
+
+  @Prop()
+  city?: string;
+
+  @Prop()
+  district?: string;
+
+  @Prop()
+  state?: string;
+
+  @Prop()
+  address?: string;
 }
 
 @Schema({ _id: false })
@@ -358,6 +379,9 @@ export class TeacherProfile {
 
   @Prop({ type: Location, _id: false })
   location?: Location;
+
+  @Prop({ type: [TeachingLocation], default: [] })
+  teachingLocations?: TeachingLocation[];
 
   @Prop({ type: Contact, _id: false })
   contact?: Contact;

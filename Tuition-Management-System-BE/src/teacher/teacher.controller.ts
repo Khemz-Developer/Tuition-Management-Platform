@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { TeacherService } from './teacher.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
@@ -40,6 +40,26 @@ export class TeacherController {
   @Post('classes')
   async createClass(@CurrentUser() user: any, @Body() body: any) {
     return this.teacherService.createClass(user.id, body);
+  }
+
+  @Get('classes/:id')
+  async getClass(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.teacherService.getClass(user.id, id);
+  }
+
+  @Put('classes/:id')
+  async updateClass(@CurrentUser() user: any, @Param('id') id: string, @Body() body: any) {
+    return this.teacherService.updateClass(user.id, id, body);
+  }
+
+  @Patch('classes/:id')
+  async patchClass(@CurrentUser() user: any, @Param('id') id: string, @Body() body: any) {
+    return this.teacherService.updateClass(user.id, id, body);
+  }
+
+  @Delete('classes/:id')
+  async deleteClass(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.teacherService.deleteClass(user.id, id);
   }
 
   @Get('website/config')

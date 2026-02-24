@@ -1,4 +1,5 @@
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
 import { Badge } from '@/shared/components/ui/badge'
@@ -14,33 +15,76 @@ import {
 } from '@/shared/components/ui/table'
 import {
   ArrowLeft,
-  Edit,
   Users,
-  Calendar,
   Clock,
   FileText,
-  Video,
-  Download,
-  MoreVertical,
+  Globe,
+  Lock,
+  GraduationCap,
+  MapPin,
 } from 'lucide-react'
+import { get } from '@/shared/services/api'
+import type { Class } from '@/shared/types/class.types'
 import { getInitials } from '@/lib/utils'
 
-// Placeholder data - this would come from API
-const classData = {
-  id: '1',
-  title: 'Advanced Mathematics',
-  description: 'Comprehensive calculus and algebra course for 11th grade students preparing for competitive exams.',
-  subject: 'Mathematics',
-  grade: '11th',
-  status: 'ACTIVE',
-  enrolledStudents: 25,
-  capacity: 30,
-  totalSessions: 24,
-  completedSessions: 15,
-  schedule: 'Mon, Wed, Fri - 10:00 AM',
-  startDate: '2024-01-15',
-  endDate: '2024-06-15',
-  price: 5000,
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+function formatFee(currency: string | undefined, fee: number | undefined): string {
+  if (fee == null) return '—'
+  const amount = typeof fee === 'number' ? fee.toLocaleString() : String(fee)
+  if (!currency || currency === 'LKR') return `Rs. ${amount}`
+  return `${currency} ${amount}`
+}
+
+function formatDate(dateStr: string | undefined): string {
+  if (!dateStr) return '—'
+  const d = new Date(dateStr)
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function formatSchedule(
+  scheduleRules?:
+    | { dayOfWeek: number; startTime: string; endTime: string }[]
+    | { daysOfWeek?: number[]; startTime?: string; endTime?: string }
+): string {
+  if (!scheduleRules) return '—'
+  if (Array.isArray(scheduleRules) === false && 'daysOfWeek' in scheduleRules) {
+    const r = scheduleRules as { daysOfWeek?: number[]; startTime?: string; endTime?: string }
+    if (!r.daysOfWeek?.length || !r.startTime) return '—'
+    const dayNames = r.daysOfWeek.map((d) => DAYS[d]).filter(Boolean).join(', ')
+    const time = r.endTime ? `${r.startTime} – ${r.endTime}` : r.startTime
+    return `${dayNames} • ${time}`
+  }
+  if (Array.isArray(scheduleRules) && scheduleRules.length > 0) {
+    return (
+      scheduleRules
+        .map((r) => `${DAYS[r.dayOfWeek] ?? ''} ${r.startTime}${r.endTime ? `-${r.endTime}` : ''}`)
+        .filter(Boolean)
+        .join(', ') || '—'
+    )
+  }
+  return '—'
+}
+
+function getStatusLabel(status: string): string {
+  switch (status) {
+    case 'ACTIVE':
+      return 'Active'
+    case 'DRAFT':
+      return 'Draft'
+    case 'COMPLETED':
+      return 'Completed'
+    case 'ARCHIVED':
+      return 'Archived'
+    default:
+      return status
+  }
+}
+
+function getStatusTone(status: string): string {
+  if (status === 'ACTIVE') return 'bg-primary/10 text-primary border-primary/20'
+  if (status === 'DRAFT') return 'bg-secondary text-secondary-foreground border-secondary/40'
+  return 'bg-muted text-muted-foreground border-border'
 }
 
 const enrolledStudents = [
@@ -49,23 +93,80 @@ const enrolledStudents = [
   { id: '3', name: 'Carol Evans', email: 'carol@example.com', joinedAt: '2024-01-16', attendance: 92 },
 ]
 
-const upcomingSessions = [
-  { id: '1', title: 'Calculus - Derivatives', date: '2024-02-07', time: '10:00 AM', duration: '1.5 hours' },
-  { id: '2', title: 'Calculus - Integration', date: '2024-02-09', time: '10:00 AM', duration: '1.5 hours' },
-]
-
-const materials = [
-  { id: '1', title: 'Calculus Notes Chapter 1', type: 'PDF', size: '2.4 MB', uploadedAt: '2024-01-20' },
-  { id: '2', title: 'Introduction Video', type: 'VIDEO', duration: '15:30', uploadedAt: '2024-01-18' },
-  { id: '3', title: 'Practice Problems Set 1', type: 'PDF', size: '1.1 MB', uploadedAt: '2024-01-25' },
-]
-
 export default function TeacherClassDetail() {
-  const { classId } = useParams()
+  const { id } = useParams<{ id: string }>()
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const [classData, setClassData] = useState<Class | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!id) {
+      setError('Invalid class id')
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    setError(null)
+    get<{ classes: Class[] }>('/teacher/classes')
+      .then((res) => {
+        const cls = (res.classes || []).find((c) => c._id === id)
+        if (!cls) {
+          setError('Class not found')
+          setClassData(null)
+          return
+        }
+        setClassData(cls)
+      })
+      .catch((err) => {
+        setError(err?.message || 'Failed to load class details')
+        setClassData(null)
+      })
+      .finally(() => setLoading(false))
+  }, [id])
+
+  const activeTab = useMemo(() => {
+    if (location.pathname.endsWith('/students')) return 'students'
+    if (location.pathname.endsWith('/calendar') || location.pathname.endsWith('/attendance') || location.pathname.endsWith('/content')) return 'overview'
+    return 'overview'
+  }, [location.pathname])
+
+  const handleTabChange = (value: string) => {
+    if (!id) return
+    if (value === 'overview') navigate(`/teacher/classes/${id}`)
+    else if (value === 'students') navigate(`/teacher/classes/${id}/students`)
+  }
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center text-muted-foreground">Loading class details...</CardContent>
+      </Card>
+    )
+  }
+
+  if (error || !classData) {
+    return (
+      <Card>
+        <CardContent className="space-y-4 py-12 text-center">
+          <p className="text-destructive">{error || 'Class not found'}</p>
+          <Button variant="outline" asChild>
+            <Link to="/teacher/classes">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Classes
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const enrolledCount = classData.enrolledCount ?? (classData as Class & { currentEnrollment?: number }).currentEnrollment ?? 0
 
   return (
-    <div className="space-y-6">
-      {/* Page header */}
+    <div className="space-y-8">
       <div className="flex flex-col gap-4">
         <Button variant="ghost" className="w-fit" asChild>
           <Link to="/teacher/classes">
@@ -73,104 +174,119 @@ export default function TeacherClassDetail() {
             Back to Classes
           </Link>
         </Button>
-        
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight">{classData.title}</h1>
-              <Badge variant={classData.status === 'ACTIVE' ? 'success' : 'secondary'}>
-                {classData.status}
-              </Badge>
+
+        <Card className="relative overflow-hidden rounded-2xl border border-border/70 bg-card/95 shadow-sm">
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/60 via-secondary/60 to-accent/60" />
+          <CardContent className="space-y-5 pt-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className={`border text-xs font-semibold ${getStatusTone(classData.status)}`}>
+                    {getStatusLabel(classData.status)}
+                  </Badge>
+                  <Badge variant="outline" className="gap-1 text-xs font-medium">
+                    {classData.visibility === 'PUBLIC' ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+                    {classData.visibility === 'PUBLIC' ? 'Public' : 'Private'}
+                  </Badge>
+                  {classData.fee != null && (
+                    <Badge variant="outline" className="text-xs font-medium">
+                      {formatFee(classData.currency, classData.fee)}
+                    </Badge>
+                  )}
+                </div>
+                <h1 className="text-3xl font-bold tracking-tight">{classData.title}</h1>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-xs font-medium">
+                    <GraduationCap className="h-3.5 w-3.5" />
+                    {classData.subject}
+                  </span>
+                  <span className="inline-flex items-center rounded-full bg-muted/70 px-2.5 py-1 text-xs font-medium">
+                    Grade {classData.grade}
+                  </span>
+                  {(classData.instituteName || classData.teachingMode) && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/70 px-2.5 py-1 text-xs font-medium">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {classData.instituteName || classData.teachingMode}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="w-full max-w-xs rounded-xl border border-border/60 bg-muted/30 p-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Students</span>
+                  <span className="font-semibold text-foreground tabular-nums">{enrolledCount} {enrolledCount === 1 ? 'student' : 'students'}</span>
+                </div>
+              </div>
             </div>
-            <p className="text-muted-foreground mt-1">
-              {classData.subject} • {classData.grade}
-            </p>
-          </div>
-          <Button asChild>
-            <Link to={`/teacher/classes/${classId}/edit`}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Class
-            </Link>
-          </Button>
-        </div>
+            {classData.description && <p className="text-sm leading-relaxed text-muted-foreground">{classData.description}</p>}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Stats cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
+      <div className="mt-1 grid gap-4 md:grid-cols-3">
+        <Card className="rounded-2xl border-border/70 bg-card/95">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Students</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{classData.enrolledStudents}/{classData.capacity}</div>
-            <p className="text-xs text-muted-foreground">Enrolled students</p>
+            <div className="text-2xl font-bold">{enrolledCount} {enrolledCount === 1 ? 'student' : 'students'}</div>
+            <p className="text-xs text-muted-foreground">In this class</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Sessions</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{classData.completedSessions}/{classData.totalSessions}</div>
-            <p className="text-xs text-muted-foreground">Completed</p>
-          </CardContent>
-        </Card>
-        <Card>
+        <Card className="rounded-2xl border-border/70 bg-card/95">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Schedule</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-bold">{classData.schedule}</div>
+            <div className="text-base font-semibold leading-snug">{formatSchedule(classData.scheduleRules as never)}</div>
             <p className="text-xs text-muted-foreground">Weekly schedule</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-2xl border-border/70 bg-card/95">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Price</CardTitle>
+            <CardTitle className="text-sm font-medium">Created</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{classData.price}</div>
-            <p className="text-xs text-muted-foreground">Per month</p>
+            <div className="text-lg font-semibold">{formatDate(classData.createdAt)}</div>
+            <p className="text-xs text-muted-foreground">Class creation date</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+        <TabsList className="rounded-xl border border-border/70 bg-card/80 p-1">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="students">Students ({enrolledStudents.length})</TabsTrigger>
-          <TabsTrigger value="sessions">Sessions</TabsTrigger>
-          <TabsTrigger value="materials">Materials ({materials.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
-          <Card>
+          <Card className="rounded-2xl border-border/70 bg-card/95">
             <CardHeader>
               <CardTitle>About this Class</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-muted-foreground">{classData.description}</p>
-              <div className="grid gap-4 md:grid-cols-2">
+              {classData.description && <p className="text-muted-foreground">{classData.description}</p>}
+              {classData.languages && classData.languages.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium">Start Date</p>
-                  <p className="text-muted-foreground">{new Date(classData.startDate).toLocaleDateString()}</p>
+                  <p className="mb-2 text-sm font-medium">Languages</p>
+                  <div className="flex flex-wrap gap-2">
+                    {classData.languages.map((language) => (
+                      <Badge key={language} variant="outline" className="font-normal">
+                        {language}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium">End Date</p>
-                  <p className="text-muted-foreground">{new Date(classData.endDate).toLocaleDateString()}</p>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="students">
-          <Card>
+          <Card className="rounded-2xl border-border/70 bg-card/95">
             <CardHeader>
               <CardTitle>Enrolled Students</CardTitle>
               <CardDescription>Students currently enrolled in this class</CardDescription>
@@ -214,77 +330,6 @@ export default function TeacherClassDetail() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="sessions">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Upcoming Sessions</CardTitle>
-                  <CardDescription>Scheduled sessions for this class</CardDescription>
-                </div>
-                <Button asChild>
-                  <Link to="/teacher/sessions">Schedule Session</Link>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {upcomingSessions.map((session) => (
-                  <div key={session.id} className="flex items-center justify-between p-4 rounded-lg border">
-                    <div>
-                      <p className="font-medium">{session.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(session.date).toLocaleDateString()} at {session.time} • {session.duration}
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm">Start Session</Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="materials">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Course Materials</CardTitle>
-                  <CardDescription>Files and resources for this class</CardDescription>
-                </div>
-                <Button asChild>
-                  <Link to="/teacher/content">Upload Material</Link>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {materials.map((material) => (
-                  <div key={material.id} className="flex items-center justify-between p-4 rounded-lg border">
-                    <div className="flex items-center gap-3">
-                      {material.type === 'PDF' ? (
-                        <FileText className="h-8 w-8 text-red-500" />
-                      ) : (
-                        <Video className="h-8 w-8 text-blue-500" />
-                      )}
-                      <div>
-                        <p className="font-medium">{material.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {material.type === 'PDF' ? material.size : material.duration} •{' '}
-                          {new Date(material.uploadedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   )

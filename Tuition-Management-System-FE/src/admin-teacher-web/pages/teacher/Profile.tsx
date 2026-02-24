@@ -28,11 +28,12 @@ import {
   Eye,
   User,
   Phone,
+  Mail,
   MapPin,
   Briefcase,
   Link as LinkIcon,
   Plus,
-  Clock,
+  Users,
 } from 'lucide-react'
 import { CITIES as FALLBACK_CITIES, PROVINCES as FALLBACK_PROVINCES, DISTRICTS as FALLBACK_DISTRICTS } from './locationOptions'
 
@@ -83,7 +84,7 @@ const experienceLevels = [
 
 const teachingModes = ['Online', 'Physical class', 'Home visit']
 const languages = ['English', 'Sinhala', 'Tamil']
-const studentTargetTypes = ['Individual', 'Group', 'Revision', 'Crash course']
+const studentTargetTypes = ['Individual', 'Group', 'Revision', 'Crash course', 'Common']
 const onlinePlatforms = ['Zoom', 'Google Meet', 'MS Teams', 'Skype', 'Other']
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -106,11 +107,20 @@ const profileSchema = z.object({
   experience: z.string().optional(),
   qualifications: z.array(z.string()).optional(),
   
-  // Location
+  // Location (legacy single – kept for backward compat)
   city: z.string().optional(),
   district: z.string().optional(),
   state: z.string().optional(),
   address: z.string().optional(),
+  instituteName: z.string().optional(),
+  // Teaching locations (multiple institutions)
+  teachingLocations: z.array(z.object({
+    instituteName: z.string().optional(),
+    city: z.string().optional(),
+    district: z.string().optional(),
+    state: z.string().optional(),
+    address: z.string().optional(),
+  })).optional(),
   
   // Pricing
   hourlyRate: z.string().optional(),
@@ -181,6 +191,7 @@ export default function TeacherProfile() {
     districts: string[]
     provinces: string[]
   }>({ cities: [], districts: [], provinces: [] })
+  const [locationOptionsByIndex, setLocationOptionsByIndex] = useState<Record<number, { districts: string[]; cities: string[] }>>({})
 
   const {
     register,
@@ -199,6 +210,7 @@ export default function TeacherProfile() {
       studentTargetTypes: [],
       onlinePlatforms: [],
       qualifications: [],
+      teachingLocations: [],
     },
   })
 
@@ -366,6 +378,16 @@ export default function TeacherProfile() {
           district: data.location?.district || '',
           state: data.location?.state || '',
           address: data.location?.address || '',
+          instituteName: data.location?.instituteName || '',
+          teachingLocations: Array.isArray(data.teachingLocations) && data.teachingLocations.length > 0
+            ? data.teachingLocations.map((loc: { instituteName?: string; city?: string; district?: string; state?: string; address?: string }) => ({
+                instituteName: loc.instituteName || '',
+                city: loc.city || '',
+                district: loc.district || '',
+                state: loc.state || '',
+                address: loc.address || '',
+              }))
+            : [],
           hourlyRate: data.pricing?.hourlyRate || '',
           monthlyFee: data.pricing?.monthlyFee || '',
           groupClassPrice: data.pricing?.groupClassPrice || '',
@@ -382,7 +404,28 @@ export default function TeacherProfile() {
           whatsapp: data.socialLinks?.whatsapp || '',
           availability: availabilityData,
         })
-        
+
+        // Hydrate district/city options for loaded teaching locations
+        if (Array.isArray(data.teachingLocations) && data.teachingLocations.length > 0) {
+          const next: Record<number, { districts: string[]; cities: string[] }> = {}
+          await Promise.all(
+            data.teachingLocations.map(async (loc: { state?: string; district?: string }, i: number) => {
+              if (!loc?.state) return
+              try {
+                const districts = await LocationsService.getDistricts(loc.state)
+                next[i] = { districts: districts?.length ? districts : FALLBACK_DISTRICTS, cities: [] }
+                if (loc.district) {
+                  const cities = await LocationsService.getCities(loc.district)
+                  next[i].cities = cities?.length ? cities : FALLBACK_CITIES
+                }
+              } catch {
+                next[i] = { districts: FALLBACK_DISTRICTS, cities: loc.district ? FALLBACK_CITIES : [] }
+              }
+            })
+          )
+          setLocationOptionsByIndex(next)
+        }
+
         if (data.image && typeof data.image === 'string') {
           // Add cache-busting parameter to force refresh
           const imageUrl = data.image.includes('?') 
@@ -573,6 +616,64 @@ export default function TeacherProfile() {
     setValue('qualifications', current.filter((_, i) => i !== index))
   }
 
+  const addTeachingLocation = () => {
+    const current = watch('teachingLocations') || []
+    setValue('teachingLocations', [...current, { instituteName: '', city: '', district: '', state: '', address: '' }])
+  }
+
+  const removeTeachingLocation = (index: number) => {
+    const current = watch('teachingLocations') || []
+    setValue('teachingLocations', current.filter((_, i) => i !== index))
+    setLocationOptionsByIndex((prev) => {
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
+  }
+
+  const loadDistrictsForIndex = (index: number, province: string) => {
+    if (!province?.trim()) {
+      setLocationOptionsByIndex((prev) => ({ ...prev, [index]: { districts: [], cities: [] } }))
+      return
+    }
+    LocationsService.getDistricts(province)
+      .then((list) => {
+        setLocationOptionsByIndex((prev) => ({
+          ...prev,
+          [index]: { districts: list.length > 0 ? list : FALLBACK_DISTRICTS, cities: [] },
+        }))
+      })
+      .catch(() => {
+        setLocationOptionsByIndex((prev) => ({
+          ...prev,
+          [index]: { districts: FALLBACK_DISTRICTS, cities: [] },
+        }))
+      })
+  }
+
+  const loadCitiesForIndex = (index: number, district: string) => {
+    if (!district?.trim()) {
+      setLocationOptionsByIndex((prev) => ({
+        ...prev,
+        [index]: { ...prev[index], cities: [] },
+      }))
+      return
+    }
+    LocationsService.getCities(district)
+      .then((list) => {
+        setLocationOptionsByIndex((prev) => ({
+          ...prev,
+          [index]: { ...prev[index], districts: prev[index]?.districts ?? [], cities: list.length > 0 ? list : FALLBACK_CITIES },
+        }))
+      })
+      .catch(() => {
+        setLocationOptionsByIndex((prev) => ({
+          ...prev,
+          [index]: { ...prev[index], districts: prev[index]?.districts ?? [], cities: FALLBACK_CITIES },
+        }))
+      })
+  }
+
   const onSubmit = async (data: ProfileFormData) => {
     try {
       setIsLoading(true)
@@ -657,32 +758,27 @@ export default function TeacherProfile() {
         onlinePlatforms: data.onlinePlatforms || [],
       }
 
-      // Add location if any field is provided
-      if (data.city || data.district || data.state || data.address) {
+      // Add location if any field is provided (legacy single location)
+      if (data.city || data.district || data.state || data.address || data.instituteName) {
         updateData.location = {
           city: data.city || undefined,
           district: data.district || undefined,
           state: data.state || undefined,
           address: data.address || undefined,
+          instituteName: data.instituteName !== undefined ? data.instituteName : undefined,
         }
       }
-
-      // Add pricing if any field is provided
-      if (data.hourlyRate || data.monthlyFee || data.groupClassPrice || (data.usePriceByGrade && data.priceByGrade?.length)) {
-        updateData.pricing = {
-          hourlyRate: data.hourlyRate || undefined,
-          monthlyFee: data.monthlyFee || undefined,
-          groupClassPrice: data.groupClassPrice || undefined,
-        }
-        if (data.usePriceByGrade && data.priceByGrade?.length) {
-          updateData.pricing.priceByGrade = data.priceByGrade.map((row) => ({
-            grade: row.grade,
-            subject: row.subject || undefined,
-            hourlyRate: row.hourlyRate || undefined,
-            monthlyFee: row.monthlyFee || undefined,
-            groupClassPrice: row.groupClassPrice || undefined,
+      // Teaching locations (multiple institutions)
+      if (Array.isArray(data.teachingLocations)) {
+        updateData.teachingLocations = data.teachingLocations
+          .filter((loc) => loc.instituteName?.trim() || loc.city?.trim() || loc.district?.trim() || loc.state?.trim() || loc.address?.trim())
+          .map((loc) => ({
+            instituteName: loc.instituteName?.trim() || undefined,
+            city: loc.city?.trim() || undefined,
+            district: loc.district?.trim() || undefined,
+            state: loc.state?.trim() || undefined,
+            address: loc.address?.trim() || undefined,
           }))
-        }
       }
 
       // Add contact if phone is provided
@@ -702,32 +798,6 @@ export default function TeacherProfile() {
           instagram: data.instagram || undefined,
           whatsapp: data.whatsapp || undefined,
         }
-      }
-
-      // Add availability: per-day slots with time and grades
-      const availability: any = {}
-      let hasAvailability = false
-      daysOfWeek.forEach((day) => {
-        const dayData = watch(`availability.${day}`)
-        const slots = dayData?.slots && Array.isArray(dayData.slots) ? dayData.slots : []
-        if (dayData?.enabled && slots.length > 0) {
-          availability[day] = {
-            enabled: true,
-            slots: slots.map((slot: { startTime?: string; endTime?: string; grades?: string[]; subjects?: string[] }) => ({
-              startTime: slot.startTime || undefined,
-              endTime: slot.endTime || undefined,
-              grades: slot.grades && Array.isArray(slot.grades) ? slot.grades : [],
-              subjects: slot.subjects && Array.isArray(slot.subjects) ? slot.subjects : [],
-            })),
-          }
-          hasAvailability = true
-        } else if (dayData?.enabled) {
-          availability[day] = { enabled: true, slots: [] }
-          hasAvailability = true
-        }
-      })
-      if (hasAvailability) {
-        updateData.availability = availability
       }
 
       await put('/teacher/profile', updateData)
@@ -813,19 +883,38 @@ export default function TeacherProfile() {
     return ''
   }
 
+  // Derive subjects from educationLevels when top-level subjects is empty (backend uses educationLevels)
+  const allProfileSubjects = (profileData?.subjects && profileData.subjects.length > 0)
+    ? profileData.subjects
+    : (profileData?.educationLevels || []).flatMap((el: { subjects?: string[] }) => el.subjects || [])
+  const profileViewSubjects = Array.from(new Set<string>(allProfileSubjects)).filter(Boolean).sort()
+
   const profile = {
     name: profileData?.firstName && profileData?.lastName
       ? `${profileData.firstName} ${profileData.lastName}`
       : profileData?.firstName || profileData?.lastName || user?.name || 'Teacher',
-    email: user?.email || 'email@example.com',
+    email: user?.email || '',
     phone: profileData?.contact?.phone || '',
-    location: [profileData?.location?.city, profileData?.location?.district, profileData?.location?.state].filter(Boolean).length
-      ? [profileData?.location?.city, profileData?.location?.district, profileData?.location?.state].filter(Boolean).join(', ')
-      : 'Not set',
+    tagline: profileData?.tagline || '',
+    location: (() => {
+      const locs = profileData?.teachingLocations
+      if (Array.isArray(locs) && locs.length > 0) {
+        if (locs.length === 1) {
+          const parts = [locs[0].instituteName, locs[0].city, locs[0].district, locs[0].state].filter(Boolean)
+          return parts.length ? parts.join(', ') : 'Not set'
+        }
+        return `${locs.length} teaching locations`
+      }
+      const legacy = [profileData?.location?.city, profileData?.location?.district, profileData?.location?.state].filter(Boolean)
+      return legacy.length ? legacy.join(', ') : 'Not set'
+    })(),
     bio: profileData?.bio || '',
-    subjects: profileData?.subjects || [],
+    subjects: profileViewSubjects,
     qualifications: profileData?.qualifications || [],
     experience: getExperienceDisplay(),
+    teachingModes: profileData?.teachingModes || [],
+    languages: profileData?.languages || [],
+    studentTargetTypes: profileData?.studentTargetTypes || [],
     socialLinks: {
       linkedin: profileData?.socialLinks?.linkedin || '',
       youtube: profileData?.socialLinks?.youtube || '',
@@ -838,7 +927,7 @@ export default function TeacherProfile() {
       totalStudents: profileData?.stats?.totalStudents || 0,
       totalClasses: profileData?.stats?.totalClasses || 0,
       avgRating: profileData?.stats?.avgRating || 0,
-      totalReviews: 0,
+      totalReviews: profileData?.stats?.totalReviews ?? 0,
     },
   }
 
@@ -976,7 +1065,16 @@ export default function TeacherProfile() {
                         <div className="p-2 rounded-lg bg-primary/10 group-hover/item:bg-primary/20 transition-colors">
                           <User className="h-4 w-4 text-primary" />
                         </div>
-                        <p className="font-medium">{profile.name}</p>
+                        <p className="font-medium">{profile.name || '—'}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2 group/item p-4 rounded-lg hover:bg-muted/50 transition-all duration-300">
+                      <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10 group-hover/item:bg-primary/20 transition-colors">
+                          <Mail className="h-4 w-4 text-primary" />
+                        </div>
+                        <p className="font-medium">{profile.email || 'Not set'}</p>
                       </div>
                     </div>
                     <div className="space-y-2 group/item p-4 rounded-lg hover:bg-muted/50 transition-all duration-300">
@@ -985,24 +1083,30 @@ export default function TeacherProfile() {
                         <div className="p-2 rounded-lg bg-green-500/10 group-hover/item:bg-green-500/20 transition-colors">
                           <Phone className="h-4 w-4 text-green-600" />
                         </div>
-                        <p className="font-medium">{profile.phone}</p>
+                        <p className="font-medium">{profile.phone || 'Not set'}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2 group/item p-4 rounded-lg hover:bg-muted/50 transition-all duration-300">
+                      <Label className="text-sm font-medium text-muted-foreground">Location</Label>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-blue-500/10 group-hover/item:bg-blue-500/20 transition-colors">
+                          <MapPin className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <p className="font-medium">{profile.location || 'Not set'}</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2 group/item p-4 rounded-lg hover:bg-muted/50 transition-all duration-300">
-                    <Label className="text-sm font-medium text-muted-foreground">Location</Label>
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-blue-500/10 group-hover/item:bg-blue-500/20 transition-colors">
-                        <MapPin className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <p className="font-medium">{profile.location}</p>
+                  {profile.tagline ? (
+                    <div className="space-y-2 group/item p-4 rounded-lg hover:bg-muted/50 transition-all duration-300">
+                      <Label className="text-sm font-medium text-muted-foreground">Tagline</Label>
+                      <p className="text-sm font-medium italic">{profile.tagline}</p>
                     </div>
-                  </div>
+                  ) : null}
 
                   <div className="space-y-2 group/item p-4 rounded-lg hover:bg-muted/50 transition-all duration-300">
                     <Label className="text-sm font-medium text-muted-foreground">Bio</Label>
-                    <p className="text-sm leading-relaxed">{profile.bio}</p>
+                    <p className="text-sm leading-relaxed">{profile.bio || 'No bio added yet.'}</p>
                   </div>
 
                   <Separator className="my-6" />
@@ -1016,31 +1120,67 @@ export default function TeacherProfile() {
                       <div className="space-y-3 p-4 rounded-lg border border-muted hover:border-primary/50 transition-all duration-300 hover:shadow-md">
                         <Label className="text-sm font-medium text-muted-foreground">Subjects</Label>
                         <div className="flex flex-wrap gap-2">
-                          {profile.subjects.map((subject: string, idx: number) => (
-                            <Badge 
-                              key={subject} 
-                              variant="secondary"
-                              className="hover:scale-110 transition-transform duration-200 cursor-pointer shadow-sm hover:shadow-md"
-                              style={{ animationDelay: `${idx * 50}ms` }}
-                            >
-                              {subject}
-                            </Badge>
-                          ))}
+                          {profile.subjects.length > 0 ? (
+                            profile.subjects.map((subject: string, idx: number) => (
+                              <Badge 
+                                key={subject} 
+                                variant="secondary"
+                                className="hover:scale-110 transition-transform duration-200 cursor-pointer shadow-sm hover:shadow-md"
+                                style={{ animationDelay: `${idx * 50}ms` }}
+                              >
+                                {subject}
+                              </Badge>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground">None added</p>
+                          )}
                         </div>
                       </div>
                       <div className="space-y-3 p-4 rounded-lg border border-muted hover:border-purple-500/50 transition-all duration-300 hover:shadow-md">
                         <Label className="text-sm font-medium text-muted-foreground">Qualifications</Label>
                         <div className="flex flex-wrap gap-2">
-                          {profile.qualifications.map((qualification: string, idx: number) => (
-                            <Badge 
-                              key={qualification} 
-                              variant="outline"
-                              className="hover:scale-110 transition-transform duration-200 cursor-pointer hover:bg-purple-500/10 hover:border-purple-500"
-                              style={{ animationDelay: `${idx * 50}ms` }}
-                            >
-                              {qualification}
-                            </Badge>
-                          ))}
+                          {profile.qualifications.length > 0 ? (
+                            profile.qualifications.map((qualification: string, idx: number) => (
+                              <Badge 
+                                key={qualification} 
+                                variant="outline"
+                                className="hover:scale-110 transition-transform duration-200 cursor-pointer hover:bg-purple-500/10 hover:border-purple-500"
+                                style={{ animationDelay: `${idx * 50}ms` }}
+                              >
+                                {qualification}
+                              </Badge>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground">None added</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-3 p-4 rounded-lg border border-muted hover:border-amber-500/50 transition-all duration-300 hover:shadow-md">
+                        <Label className="text-sm font-medium text-muted-foreground">Teaching Modes</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {profile.teachingModes.length > 0 ? (
+                            profile.teachingModes.map((mode: string) => (
+                              <Badge key={mode} variant="outline" className="font-normal">
+                                {mode}
+                              </Badge>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Not set</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-3 p-4 rounded-lg border border-muted hover:border-emerald-500/50 transition-all duration-300 hover:shadow-md">
+                        <Label className="text-sm font-medium text-muted-foreground">Languages</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {profile.languages.length > 0 ? (
+                            profile.languages.map((lang: string) => (
+                              <Badge key={lang} variant="outline" className="font-normal">
+                                {lang}
+                              </Badge>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Not set</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1050,9 +1190,22 @@ export default function TeacherProfile() {
                         <div className="p-2 rounded-lg bg-amber-500/10 group-hover/item:bg-amber-500/20 transition-colors">
                           <Briefcase className="h-4 w-4 text-amber-600" />
                         </div>
-                        <p className="font-medium">{profile.experience}</p>
+                        <p className="font-medium">{profile.experience || 'Not set'}</p>
                       </div>
                     </div>
+                    {profile.studentTargetTypes.length > 0 && (
+                      <div className="space-y-2 group/item p-4 rounded-lg hover:bg-muted/50 transition-all duration-300">
+                        <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          Student Target
+                        </Label>
+                        <div className="flex flex-wrap gap-2">
+                          {profile.studentTargetTypes.map((t: string) => (
+                            <Badge key={t} variant="secondary" className="font-normal">{t}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <Separator className="my-6" />
@@ -1186,12 +1339,6 @@ export default function TeacherProfile() {
                     className="data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300 hover:scale-105"
                   >
                     Teaching Details
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="pricing"
-                    className="data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300 hover:scale-105"
-                  >
-                    Pricing & Availability
                   </TabsTrigger>
                 </TabsList>
 
@@ -1595,54 +1742,91 @@ export default function TeacherProfile() {
                       </div>
 
                       {watchedTeachingModes?.includes('Physical class') && (
-                        <div className="grid gap-4 md:grid-cols-3">
-                          <div className="space-y-2">
-                            <Label htmlFor="state">Province</Label>
-                            <SearchableSelect
-                              id="state"
-                              value={watch('state') || ''}
-                              onValueChange={(value) => {
-                                setValue('state', value)
-                                setValue('district', '')
-                                setValue('city', '')
-                              }}
-                              options={locationOptions.provinces}
-                              placeholder="Select province"
-                              searchPlaceholder="Search provinces..."
-                              emptyMessage="No province found."
-                            />
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium">Teaching locations / Institutions</p>
+                            <p className="text-xs text-muted-foreground">Add each province, district, city and institute where you teach</p>
                           </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="district">District</Label>
-                            <SearchableSelect
-                              id="district"
-                              value={watch('district') || ''}
-                              onValueChange={(value) => {
-                                setValue('district', value)
-                                setValue('city', '')
-                              }}
-                              options={locationOptions.districts}
-                              placeholder="Select district"
-                              searchPlaceholder="Search districts..."
-                              emptyMessage="No district found."
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="city">City</Label>
-                            <SearchableSelect
-                              id="city"
-                              value={watch('city') || ''}
-                              onValueChange={(value) => setValue('city', value)}
-                              options={locationOptions.cities}
-                              placeholder="Select city"
-                              searchPlaceholder="Search cities..."
-                              emptyMessage="No city found."
-                            />
-                          </div>
-                          <div className="space-y-2 md:col-span-3">
-                            <Label htmlFor="address">Address (Optional)</Label>
-                            <Input id="address" {...register('address')} placeholder="Full address" />
-                          </div>
+                          {(watch('teachingLocations') || []).map((_, index) => {
+                            const opts = locationOptionsByIndex[index] || { districts: [], cities: [] }
+                            return (
+                              <Card key={index} className="p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <span className="text-sm font-medium text-muted-foreground">Location {index + 1}</span>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removeTeachingLocation(index)}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                                <div className="grid gap-4 md:grid-cols-3">
+                                  <div className="space-y-2">
+                                    <Label>Province</Label>
+                                    <SearchableSelect
+                                      value={watch(`teachingLocations.${index}.state`) || ''}
+                                      onValueChange={(value) => {
+                                        setValue(`teachingLocations.${index}.state`, value)
+                                        setValue(`teachingLocations.${index}.district`, '')
+                                        setValue(`teachingLocations.${index}.city`, '')
+                                        loadDistrictsForIndex(index, value)
+                                      }}
+                                      options={locationOptions.provinces}
+                                      placeholder="Select province"
+                                      searchPlaceholder="Search provinces..."
+                                      emptyMessage="No province found."
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label>District</Label>
+                                    <SearchableSelect
+                                      value={watch(`teachingLocations.${index}.district`) || ''}
+                                      onValueChange={(value) => {
+                                        setValue(`teachingLocations.${index}.district`, value)
+                                        setValue(`teachingLocations.${index}.city`, '')
+                                        loadCitiesForIndex(index, value)
+                                      }}
+                                      options={opts.districts}
+                                      placeholder="Select district"
+                                      searchPlaceholder="Search districts..."
+                                      emptyMessage="No district found."
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label>City</Label>
+                                    <SearchableSelect
+                                      value={watch(`teachingLocations.${index}.city`) || ''}
+                                      onValueChange={(value) => setValue(`teachingLocations.${index}.city`, value)}
+                                      options={opts.cities}
+                                      placeholder="Select city"
+                                      searchPlaceholder="Search cities..."
+                                      emptyMessage="No city found."
+                                    />
+                                  </div>
+                                  <div className="space-y-2 md:col-span-3">
+                                    <Label>Institute / Academy name (Optional)</Label>
+                                    <Input
+                                      {...register(`teachingLocations.${index}.instituteName`)}
+                                      placeholder="e.g. ABC Tuition Centre"
+                                    />
+                                  </div>
+                                  <div className="space-y-2 md:col-span-3">
+                                    <Label>Address (Optional)</Label>
+                                    <Input
+                                      {...register(`teachingLocations.${index}.address`)}
+                                      placeholder="Full address for this location"
+                                    />
+                                  </div>
+                                </div>
+                              </Card>
+                            )
+                          })}
+                          <Button type="button" variant="outline" onClick={addTeachingLocation} className="w-full sm:w-auto">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add teaching location
+                          </Button>
                         </div>
                       )}
 
@@ -1817,305 +2001,6 @@ export default function TeacherProfile() {
                   </Card>
                 </TabsContent>
 
-                {/* Pricing & Availability Tab */}
-                <TabsContent value="pricing" className="space-y-6">
-                  <Card className="border-2 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
-                    <CardHeader className="bg-gradient-to-r from-amber-500/5 to-orange-500/5">
-                      <CardTitle className="flex items-center gap-2">
-                        <span className="text-2xl">💰</span>
-                        Pricing
-                      </CardTitle>
-                      <CardDescription>Set your teaching fees. Optionally set different prices by grade.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid gap-4 md:grid-cols-3">
-                        <div className="space-y-2">
-                          <Label htmlFor="hourlyRate">Hourly Rate (LKR)</Label>
-                          <Input
-                            id="hourlyRate"
-                            type="number"
-                            placeholder="2000"
-                            {...register('hourlyRate')}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="monthlyFee">Monthly Fee (LKR)</Label>
-                          <Input
-                            id="monthlyFee"
-                            type="number"
-                            placeholder="15000"
-                            {...register('monthlyFee')}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="groupClassPrice">Group Class Price (LKR)</Label>
-                          <Input
-                            id="groupClassPrice"
-                            type="number"
-                            placeholder="10000"
-                            {...register('groupClassPrice')}
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2 pt-2">
-                        <Checkbox
-                          id="usePriceByGrade"
-                          checked={watch('usePriceByGrade') || false}
-                          onCheckedChange={(checked) => {
-                            setValue('usePriceByGrade', !!checked)
-                            if (checked && (watch('priceByGrade')?.length === 0 || !watch('priceByGrade')?.length) && uniqueGrades.length > 0) {
-                              setValue('priceByGrade', uniqueGrades.map((grade) => ({ grade, subject: '', hourlyRate: '', monthlyFee: '', groupClassPrice: '' })))
-                            }
-                          }}
-                        />
-                        <Label htmlFor="usePriceByGrade" className="cursor-pointer">
-                          Set different prices by grade (optional)
-                        </Label>
-                      </div>
-                      {watch('usePriceByGrade') && uniqueGrades.length > 0 && (
-                        <div className="space-y-3 pt-2 border-t">
-                          <p className="text-sm text-muted-foreground">Override price for specific grade (and optional subject). Leave blank to use default.</p>
-                          <div className="grid gap-3">
-                            {uniqueGrades.map((grade) => {
-                              const rowIdx = watch('priceByGrade')?.findIndex((r) => r.grade === grade) ?? -1
-                              if (rowIdx < 0) return null
-                              return (
-                                <div key={grade} className="flex flex-wrap items-center gap-3 p-3 rounded-md bg-muted/50">
-                                  <span className="font-medium min-w-[6rem]">
-                                    Grade {grade}
-                                    {getEducationLevelForGrade(grade) && (
-                                      <span className="text-muted-foreground font-normal"> ({getEducationLevelForGrade(grade)})</span>
-                                    )}
-                                  </span>
-                                  {uniqueSubjects.length > 0 && (
-                                    <Select
-                                      value={watch(`priceByGrade.${rowIdx}.subject`) || 'all'}
-                                      onValueChange={(val) => setValue(`priceByGrade.${rowIdx}.subject`, val === 'all' ? '' : val)}
-                                    >
-                                      <SelectTrigger className="w-40">
-                                        <SelectValue placeholder="Subject (optional)" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="all">All subjects</SelectItem>
-                                        {uniqueSubjects.map((sub) => (
-                                          <SelectItem key={sub} value={sub}>{sub}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  )}
-                                  <Input
-                                    type="number"
-                                    placeholder="Hourly (LKR)"
-                                    className="w-32"
-                                    {...register(`priceByGrade.${rowIdx}.hourlyRate`)}
-                                  />
-                                  <Input
-                                    type="number"
-                                    placeholder="Monthly (LKR)"
-                                    className="w-32"
-                                    {...register(`priceByGrade.${rowIdx}.monthlyFee`)}
-                                  />
-                                  <Input
-                                    type="number"
-                                    placeholder="Group (LKR)"
-                                    className="w-32"
-                                    {...register(`priceByGrade.${rowIdx}.groupClassPrice`)}
-                                  />
-                                  <input type="hidden" {...register(`priceByGrade.${rowIdx}.grade`)} value={grade} />
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-2 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
-                    <CardHeader className="bg-gradient-to-r from-indigo-500/5 to-purple-500/5">
-                      <CardTitle className="flex items-center gap-2">
-                        <span className="text-2xl">📅</span>
-                        Availability
-                      </CardTitle>
-                      <CardDescription>
-                        Add time slots per day. Each slot can have different grades (e.g. multiple classes per day for different grades).
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {daysOfWeek.map((day, idx) => {
-                        const dayEnabled = watch(`availability.${day}.enabled`) || false
-                        const slots = watch(`availability.${day}.slots`) || []
-                        return (
-                          <div 
-                            key={day} 
-                            className={`border-2 rounded-xl p-4 space-y-3 transition-all duration-300 hover:shadow-md ${
-                              dayEnabled ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/30'
-                            }`}
-                            style={{ animationDelay: `${idx * 50}ms` }}
-                          >
-                            <div className="flex items-center space-x-3">
-                              <Checkbox
-                                id={`day-${day}`}
-                                checked={dayEnabled}
-                                onCheckedChange={(checked) => {
-                                  setValue(`availability.${day}.enabled`, checked as boolean)
-                                  if (checked && (!slots || slots.length === 0)) {
-                                    setValue(`availability.${day}.slots`, [{ startTime: '', endTime: '', grades: [], subjects: [] }])
-                                  }
-                                }}
-                                className="scale-110"
-                              />
-                              <Label htmlFor={`day-${day}`} className="cursor-pointer font-semibold text-base flex-1">
-                                {day}
-                              </Label>
-                            </div>
-                            {dayEnabled && (
-                              <div className="pl-6 space-y-2">
-                                {(slots as { startTime?: string; endTime?: string; grades?: string[]; subjects?: string[] }[]).map((_, slotIdx) => (
-                                  <div key={slotIdx} className="flex flex-wrap items-center gap-2 p-2 rounded bg-muted/50">
-                                    <div className="relative flex items-center w-fit">
-                                      <div className="relative w-[9rem]">
-                                        <Input
-                                          type="time"
-                                          className="w-full max-w-[9rem] pr-9 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
-                                          {...register(`availability.${day}.slots.${slotIdx}.startTime`)}
-                                        />
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
-                                          onClick={(e) => {
-                                            const wrapper = (e.currentTarget as HTMLElement).parentElement
-                                            const input = wrapper?.querySelector?.('input[type="time"]') as HTMLInputElement | null
-                                            if (input) {
-                                              try {
-                                                (input as HTMLInputElement & { showPicker?: () => void }).showPicker?.()
-                                              } catch {
-                                                input.focus()
-                                              }
-                                              input.focus()
-                                            }
-                                          }}
-                                          title="Select start time"
-                                        >
-                                          <Clock className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                    <span className="text-muted-foreground">to</span>
-                                    <div className="relative flex items-center w-fit">
-                                      <div className="relative w-[9rem]">
-                                        <Input
-                                          type="time"
-                                          className="w-full max-w-[9rem] pr-9 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none"
-                                          {...register(`availability.${day}.slots.${slotIdx}.endTime`)}
-                                        />
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
-                                          onClick={(e) => {
-                                            const wrapper = (e.currentTarget as HTMLElement).parentElement
-                                            const input = wrapper?.querySelector?.('input[type="time"]') as HTMLInputElement | null
-                                            if (input) {
-                                              try {
-                                                (input as HTMLInputElement & { showPicker?: () => void }).showPicker?.()
-                                              } catch {
-                                                input.focus()
-                                              }
-                                              input.focus()
-                                            }
-                                          }}
-                                          title="Select end time"
-                                        >
-                                          <Clock className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                    <span className="text-muted-foreground text-sm">Grades:</span>
-                                    <div className="flex flex-wrap gap-1">
-                                      {uniqueGrades.map((g) => {
-                                        const grades = watch(`availability.${day}.slots.${slotIdx}.grades`) || []
-                                        const checked = grades.includes(g)
-                                        return (
-                                          <label key={g} className="flex items-center gap-1 text-sm cursor-pointer">
-                                            <Checkbox
-                                              checked={checked}
-                                              onCheckedChange={(c) => {
-                                                const current = watch(`availability.${day}.slots.${slotIdx}.grades`) || []
-                                                const next = c
-                                                  ? [...current.filter((x: string) => x !== g), g]
-                                                  : current.filter((x: string) => x !== g)
-                                                setValue(`availability.${day}.slots.${slotIdx}.grades`, next)
-                                              }}
-                                            />
-                                            <span>{g}{getEducationLevelForGrade(g) ? ` (${getEducationLevelForGrade(g)})` : ''}</span>
-                                          </label>
-                                        )
-                                      })}
-                                    </div>
-                                    {uniqueSubjects.length > 0 && (
-                                      <>
-                                        <span className="text-muted-foreground text-sm">Subjects:</span>
-                                        <div className="flex flex-wrap gap-1">
-                                          {uniqueSubjects.map((sub) => {
-                                            const subjects = watch(`availability.${day}.slots.${slotIdx}.subjects`) || []
-                                            const checked = subjects.includes(sub)
-                                            return (
-                                              <label key={sub} className="flex items-center gap-1 text-sm cursor-pointer">
-                                                <Checkbox
-                                                  checked={checked}
-                                                  onCheckedChange={(c) => {
-                                                    const current = watch(`availability.${day}.slots.${slotIdx}.subjects`) || []
-                                                    const next = c
-                                                      ? [...current.filter((x: string) => x !== sub), sub]
-                                                      : current.filter((x: string) => x !== sub)
-                                                    setValue(`availability.${day}.slots.${slotIdx}.subjects`, next)
-                                                  }}
-                                                />
-                                                <span>{sub}</span>
-                                              </label>
-                                            )
-                                          })}
-                                        </div>
-                                      </>
-                                    )}
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                      onClick={() => {
-                                        const next = slots.filter((_: unknown, i: number) => i !== slotIdx)
-                                        setValue(`availability.${day}.slots`, next)
-                                      }}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                ))}
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    const current = watch(`availability.${day}.slots`) || []
-                                    setValue(`availability.${day}.slots`, [...current, { startTime: '', endTime: '', grades: [], subjects: [] }])
-                                  }}
-                                >
-                                  <Plus className="h-4 w-4 mr-1" />
-                                  Add slot
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
               </Tabs>
 
               <div className="flex justify-end gap-4 pt-6 pb-2">

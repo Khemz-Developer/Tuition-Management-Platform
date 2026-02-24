@@ -33,6 +33,11 @@ export interface Class {
   endDate?: string
   tags?: string[]
   image?: string
+  teachingMode?: string
+  instituteName?: string
+  address?: string
+  studentTargetType?: string
+  languages?: string[]
   createdAt: string
   updatedAt: string
 }
@@ -52,6 +57,11 @@ export interface CreateClassDto {
   endDate?: string
   tags?: string[]
   image?: string
+  teachingMode?: string
+  instituteName?: string
+  address?: string
+  studentTargetType?: string
+  languages?: string[]
 }
 
 export interface UpdateClassDto extends Partial<CreateClassDto> {

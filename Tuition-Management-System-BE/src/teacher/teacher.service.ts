@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { TeacherProfile, TeacherProfileDocument, TeacherStatus } from '../models/teacher-profile.schema';
 import { Class, ClassDocument } from '../models/class.schema';
 import { StudentProfile, StudentProfileDocument } from '../models/student-profile.schema';
@@ -71,6 +71,18 @@ export class TeacherService {
     // Convert to plain object
     const teacherObj = teacher.toObject();
     
+    // Normalize teaching locations: if only legacy location exists, expose it as teachingLocations[0]
+    if ((!teacherObj.teachingLocations || teacherObj.teachingLocations.length === 0) && teacherObj.location) {
+      teacherObj.teachingLocations = [{
+        instituteName: teacherObj.location.instituteName,
+        city: teacherObj.location.city,
+        district: teacherObj.location.district,
+        state: teacherObj.location.state,
+        address: teacherObj.location.address,
+      }];
+    }
+    if (!teacherObj.teachingLocations) teacherObj.teachingLocations = [];
+    
     // Convert availability Map to object if it exists
     if (teacherObj.availability && teacherObj.availability instanceof Map) {
       const availabilityObj: any = {};
@@ -140,7 +152,7 @@ export class TeacherService {
     if (updateData.studentTargetTypes !== undefined) teacher.studentTargetTypes = updateData.studentTargetTypes;
     if (updateData.onlinePlatforms !== undefined) teacher.onlinePlatforms = updateData.onlinePlatforms;
 
-    // Update location
+    // Update location (legacy single location)
     if (updateData.location) {
       if (!teacher.location) {
         teacher.location = {} as any;
@@ -149,6 +161,20 @@ export class TeacherService {
       if (updateData.location.district !== undefined) teacher.location.district = updateData.location.district;
       if (updateData.location.state !== undefined) teacher.location.state = updateData.location.state;
       if (updateData.location.address !== undefined) teacher.location.address = updateData.location.address;
+      if (updateData.location.instituteName !== undefined) teacher.location.instituteName = updateData.location.instituteName;
+    }
+
+    // Update teaching locations (multiple institutions)
+    if (updateData.teachingLocations !== undefined) {
+      teacher.teachingLocations = Array.isArray(updateData.teachingLocations)
+        ? updateData.teachingLocations.map((loc: any) => ({
+            instituteName: loc.instituteName || undefined,
+            city: loc.city || undefined,
+            district: loc.district || undefined,
+            state: loc.state || undefined,
+            address: loc.address || undefined,
+          }))
+        : [];
     }
 
     // Update contact
@@ -230,6 +256,42 @@ export class TeacherService {
     });
     await classDoc.save();
     return { message: 'Class created successfully', class: classDoc };
+  }
+
+  async getClass(teacherId: string, classId: string) {
+    if (!Types.ObjectId.isValid(classId)) {
+      throw new BadRequestException('Invalid class id');
+    }
+    const classDoc = await this.classModel.findOne({ _id: new Types.ObjectId(classId), teacherId });
+    if (!classDoc) {
+      throw new NotFoundException('Class not found');
+    }
+    return classDoc.toObject();
+  }
+
+  async updateClass(teacherId: string, classId: string, updateData: any) {
+    if (!Types.ObjectId.isValid(classId)) {
+      throw new BadRequestException('Invalid class id');
+    }
+    const classDoc = await this.classModel.findOne({ _id: new Types.ObjectId(classId), teacherId });
+    if (!classDoc) {
+      throw new NotFoundException('Class not found');
+    }
+    const { inviteCode, inviteLink, teacherId: _tid, ...allowed } = updateData;
+    Object.assign(classDoc, allowed);
+    await classDoc.save();
+    return { message: 'Class updated successfully', class: classDoc.toObject() };
+  }
+
+  async deleteClass(teacherId: string, classId: string) {
+    if (!Types.ObjectId.isValid(classId)) {
+      throw new BadRequestException('Invalid class id');
+    }
+    const result = await this.classModel.findOneAndDelete({ _id: new Types.ObjectId(classId), teacherId });
+    if (!result) {
+      throw new NotFoundException('Class not found');
+    }
+    return { message: 'Class deleted successfully' };
   }
 
   async getWebsiteConfig(teacherId: string) {

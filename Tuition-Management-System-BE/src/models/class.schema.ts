@@ -80,6 +80,21 @@ export class Class {
   tags?: string[];
 
   @Prop()
+  teachingMode?: string;
+
+  @Prop()
+  instituteName?: string;
+
+  @Prop()
+  address?: string;
+
+  @Prop()
+  studentTargetType?: string;
+
+  @Prop({ type: [String] })
+  languages?: string[];
+
+  @Prop()
   startDate?: Date;
 
   @Prop()

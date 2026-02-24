@@ -86,7 +86,7 @@ export default function TeacherDashboard() {
           <p className="text-muted-foreground">Welcome back! Here's your overview.</p>
         </div>
         <Button asChild>
-          <Link to="/teacher/classes/new">
+          <Link to="/teacher/classes/create">
             <BookOpen className="mr-2 h-4 w-4" />
             Create Class
           </Link>
